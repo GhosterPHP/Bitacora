@@ -1,0 +1,103 @@
+---
+export const prerender = false;
+
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import TicketCard from '../components/TicketCard.astro';
+import '../styles/global.css';
+const { supabase } = Astro.locals;
+
+let tickets: {
+  id: number;
+  noticket: string;
+  tipoUsuario: 'Estudiante' | 'Docente';
+  codce: number;
+  ce: string;
+  fecha: string;
+}[] = [];
+
+let errorConexion: string | null = null;
+
+// Nota: la relación se llama "usuario" (minúsculas) porque así quedó
+// creada en Postgres/Supabase. La FK tickets.usuario -> usuario.id
+// permite que PostgREST la traiga embebida con este mismo nombre.
+const { data, error } = await supabase
+  .from('tickets')
+  .select('id, noticket, codce, ce, fecha, usuario(tipo)')
+  .order('fecha', { ascending: false })
+  .limit(50);
+
+if (error) {
+  console.error('Error al consultar tickets:', error);
+  errorConexion = 'No se pudo conectar a la base de datos. Revisa las variables de entorno de Supabase y los permisos (RLS) de la tabla.';
+} else {
+  tickets = (data ?? []).map((t: any) => ({
+    id: t.id,
+    noticket: t.noticket,
+    codce: t.codce,
+    ce: t.ce,
+    fecha: t.fecha,
+    tipoUsuario: t.usuario?.tipo ?? 'Estudiante',
+  }));
+}
+
+const resumen = [
+  { label: 'Total', valor: tickets.length, color: 'dark:text-slate-300, text-slate-900' },
+  { label: 'Estudiantes', valor: tickets.filter((t) => t.tipoUsuario === 'Estudiante').length, color: 'text-indigo-600' },
+  { label: 'Docentes', valor: tickets.filter((t) => t.tipoUsuario === 'Docente').length, color: 'text-teal-600' },
+  { label: 'Centros Escolares', valor: new Set(tickets.map((t) => t.codce)).size, color: 'dark:text-slate-300, text-slate-900' },
+];
+---
+
+<DashboardLayout title="Tickets">
+  <div class="max-w-7xl mx-auto">
+    <!-- Encabezado -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Tickets</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Vista general de los registros más recientes</p>
+      </div>
+      <a href="/tickets/nuevo" class="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Nuevo ticket
+      </a>
+    </div>
+
+    {errorConexion && (
+      <div class="mb-6 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+        {errorConexion}
+      </div>
+    )}
+
+    <!-- Resumen -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      {resumen.map((item) => (
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5">
+          <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{item.label}</p>
+          <p class:list={['text-2xl font-bold mt-1', item.color]}>{item.valor}</p>
+        </div>
+      ))}
+    </div>
+
+    <!-- Grid de tickets -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {tickets.map((ticket) => (
+        <TicketCard
+          id={ticket.id}
+          numTicket={ticket.noticket}
+          tipoUsuario={ticket.tipoUsuario}
+          centroEducativo={ticket.ce}
+          codce={ticket.codce}
+          fecha={ticket.fecha}
+        />
+      ))}
+    </div>
+
+    {tickets.length === 0 && !errorConexion && (
+      <div class="text-center py-16">
+        <p class="text-slate-500">No hay tickets registrados todavía.</p>
+      </div>
+    )}
+  </div>
+</DashboardLayout>

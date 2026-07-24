@@ -1,0 +1,208 @@
+---
+interface Props {
+  userEmail?: string | null;
+}
+
+const { userEmail = null } = Astro.props;
+
+// Genera iniciales a partir del email (ej. "ana.lopez@empresa.com" -> "AL")
+function getIniciales(email: string | null) {
+  if (!email) return '??';
+  const nombre = email.split('@')[0];
+  const partes = nombre.split(/[.\-_]/).filter(Boolean);
+  const iniciales = partes.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '');
+  return iniciales.join('') || email[0].toUpperCase();
+}
+
+const iniciales = getIniciales(userEmail);
+
+const rutaActual = Astro.url.pathname;
+
+// --- Reloj: hora inicial (se actualiza cada segundo por JS) ---
+const horaInicial = new Date().toLocaleTimeString('es-SV', {
+  timeZone: 'America/El_Salvador',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+});
+
+// --- Calendario: mes actual con el día de hoy resaltado ---
+const partesFecha = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/El_Salvador',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+}).formatToParts(new Date());
+
+const obtenerParte = (tipo: string) => Number(partesFecha.find((p) => p.type === tipo)?.value);
+const anioActual = obtenerParte('year');
+const mesActual = obtenerParte('month'); // 1-12
+const diaHoy = obtenerParte('day');
+
+const nombreMes = new Date(anioActual, mesActual - 1, 1)
+  .toLocaleDateString('es-ES', { month: 'long' })
+  .replace(/^\w/, (c) => c.toUpperCase());
+
+const diasEnMes = new Date(anioActual, mesActual, 0).getDate();
+const primerDiaSemana = new Date(anioActual, mesActual - 1, 1).getDay(); // 0 = domingo
+const diasSemana = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+
+const celdasCalendario: (number | null)[] = [
+  ...Array(primerDiaSemana).fill(null),
+  ...Array.from({ length: diasEnMes }, (_, i) => i + 1),
+];
+
+// Ajusta los href a las rutas reales conforme las vayas creando
+const menuItems = [
+  { label: 'Tickets', href: '/', icon: 'ticket' },
+  { label: 'Rutas', href: '/rutas', icon: 'route' },
+  { label: 'Centros Escolares', href: '/centros-escolares', icon: 'building' },
+  { label: 'Reportes', href: '/reportes', icon: 'chart' },
+  { label: 'Configuración', href: '/configuracion', icon: 'gear' },
+].map((item) => ({
+  ...item,
+  // "/" solo se marca activo en la home exacta; el resto, si la ruta
+  // actual empieza con su href (para que subrutas como /tickets/8
+  // también resalten "Tickets").
+  active: item.href === '/' ? rutaActual === '/' : rutaActual.startsWith(item.href),
+}));
+
+const icons: Record<string, string> = {
+  ticket: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+  route: 'M9 6.75V15m6-6v8.25m.503-9.65l4.94-2.47A.75.75 0 0121 5.65v13.19a.75.75 0 01-.42.671l-5.08 2.54a.75.75 0 01-.671 0l-5.658-2.829a.75.75 0 00-.671 0l-4.94 2.47A.75.75 0 013 21.03V7.84a.75.75 0 01.42-.671l5.08-2.54a.75.75 0 01.671 0l5.658 2.829a.75.75 0 00.671 0z',
+  building: 'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21',
+  users: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-8.13a4 4 0 11-8 0 4 4 0 018 0zm6 3a4 4 0 11-8 0 4 4 0 018 0z',
+  chart: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+  gear: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+};
+---
+
+<aside
+  id="sidebar"
+  class="fixed lg:sticky top-0 left-0 z-40 h-screen w-64 shrink-0 -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out bg-slate-900 text-slate-300 flex flex-col"
+>
+  <!-- Marca -->
+  <div class="flex items-center gap-2.5 px-5 h-16 border-b border-slate-800 shrink-0">
+    <div class="w-8 h-8 rounded-lg bg-cyan-400 flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-900" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d={icons.ticket} />
+      </svg>
+    </div>
+    <span class="text-white font-semibold tracking-tight">Bitacora de Actividades</span>
+  </div>
+
+  <!-- Reloj (hora de El Salvador) -->
+  <div class="flex items-center gap-2 px-5 py-3 border-b border-slate-800 dark:border-slate-800 shrink-0">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 dark:text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <div class="leading-tight">
+      <span id="reloj-el-salvador" class="font-mono-ticket text-sm text-white dark:text-white tracking-wide tabular-nums">
+        {horaInicial}
+      </span>
+      <p class="text-[10px] text-slate-500 dark:text-slate-500">Hora de El Salvador</p>
+    </div>
+  </div>
+
+  <!-- Navegación -->
+  <nav class="flex-1 min-h-0 overflow-y-auto sin-scrollbar px-3 py-3 space-y-1">
+    {menuItems.map((item) => (
+      <a
+        href={item.href}
+        class:list={[
+          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+          item.active
+            ? 'bg-slate-800 text-white border-l-2 border-cyan-400 -ml-[2px] pl-[calc(0.75rem+2px)]'
+            : 'text-slate-400 hover:bg-slate-800/60 hover:text-white',
+        ]}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d={icons[item.icon]} />
+        </svg>
+        <span>{item.label}</span>
+      </a>
+    ))}
+
+    <!-- Calendario minimalista (mes actual, día de hoy resaltado) -->
+    <div class="mt-3 px-2 py-2.5 rounded-xl bg-slate-800/60 dark:bg-slate-800/60 border border-slate-800 dark:border-slate-700">
+      <p class="text-[11px] font-semibold text-slate-300 dark:text-slate-300 tracking-wide mb-1.5 px-1">
+        {nombreMes} {anioActual}
+      </p>
+      <div class="grid grid-cols-7 gap-y-0.5 text-center">
+        {diasSemana.map((d) => (
+          <span class="text-[10px] text-slate-500 dark:text-slate-500">{d}</span>
+        ))}
+        {celdasCalendario.map((dia) => (
+          dia === null ? (
+            <span></span>
+          ) : (
+            <span
+              class:list={[
+                'text-[10px] w-5 h-5 rounded-full flex items-center justify-center mx-auto',
+                dia === diaHoy
+                  ? 'bg-cyan-400 dark:bg-cyan-500 text-slate-900 dark:text-slate-950 font-semibold'
+                  : 'text-slate-400 dark:text-slate-400',
+              ]}
+            >
+              {dia}
+            </span>
+          )
+        ))}
+      </div>
+    </div>
+  </nav>
+
+  <!-- Usuario -->
+  <div class="px-3 py-4 border-t border-slate-800 shrink-0">
+    <div class="flex items-center gap-3 px-2 py-2">
+      <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-sm font-semibold text-white shrink-0">
+        {iniciales}
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-medium text-white truncate">{userEmail ?? 'Sesión no identificada'}</p>
+        <p class="text-xs text-slate-500 truncate">Agente de soporte</p>
+      </div>
+      <form method="POST" action="/api/session?_method=DELETE" data-logout-form>
+        <button
+          type="submit"
+          aria-label="Cerrar sesión"
+          class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-800 hover:text-white transition-colors shrink-0"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+</aside>
+
+<script>
+  // El endpoint expone DELETE, pero un <form> HTML normal solo puede
+  // enviar GET/POST, así que interceptamos el submit y hacemos el
+  // fetch con el método correcto.
+  document.querySelector('[data-logout-form]')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await fetch('/api/session', { method: 'DELETE' });
+    window.location.href = '/login';
+  });
+
+  // Reloj en vivo con la hora de El Salvador, sin depender de la
+  // zona horaria del dispositivo de quien lo esté viendo.
+  const relojEl = document.getElementById('reloj-el-salvador');
+
+  function actualizarReloj() {
+    if (!relojEl) return;
+    relojEl.textContent = new Date().toLocaleTimeString('es-SV', {
+      timeZone: 'America/El_Salvador',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+  }
+
+  actualizarReloj();
+  setInterval(actualizarReloj, 1000);
+</script>

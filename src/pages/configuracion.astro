@@ -1,0 +1,172 @@
+---
+export const prerender = false;
+
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import '../styles/global.css';
+
+const { user } = Astro.locals;
+const url = new URL(Astro.request.url);
+const errorMessage = url.searchParams.get('error');
+const exitoMessage = url.searchParams.get('exito');
+---
+
+<DashboardLayout title="Configuración">
+  <div class="max-w-2xl mx-auto space-y-6">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Configuración</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Preferencias de tu cuenta y del sistema</p>
+    </div>
+
+    {errorMessage && (
+      <div class="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm rounded-xl px-4 py-3">
+        {errorMessage}
+      </div>
+    )}
+    {exitoMessage && (
+      <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400 text-sm rounded-xl px-4 py-3">
+        {exitoMessage}
+      </div>
+    )}
+
+    <!-- Apariencia -->
+    <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+      <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Apariencia</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Cambia entre modo claro y oscuro</p>
+
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div id="icono-tema" class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-amber-400">
+            <!-- Ícono sol (modo claro) -->
+            <svg id="icono-sol" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+            </svg>
+            <!-- Ícono luna (modo oscuro) -->
+            <svg id="icono-luna" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-slate-900 dark:text-slate-100">Modo oscuro</p>
+            <p id="texto-tema" class="text-xs text-slate-500 dark:text-slate-400">Desactivado</p>
+          </div>
+        </div>
+
+        <button
+          id="toggle-tema"
+          type="button"
+          role="switch"
+          aria-label="Alternar modo oscuro"
+          class="relative w-12 h-7 rounded-full bg-slate-200 transition-colors shrink-0"
+        >
+          <span
+            id="toggle-tema-perilla"
+            class="absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
+          ></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Exportar datos -->
+    <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+      <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Exportar datos</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Descarga tus registros en formato CSV (se abre directo en Excel)</p>
+      <p class="text-xs text-yellow-500 dark:text-red-500 mb-4">(Aun en desarrollo parcialmente)</p>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <a
+          href="/api/exportar/tickets"
+          download
+          class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          Exportar Tickets
+        </a>
+        <a
+          href="/api/exportar/rutas"
+          download
+          class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          Exportar Rutas
+        </a>
+      </div>
+    </section>
+
+    <!-- Cuenta -->
+    <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+      <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Cuenta</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        Sesión iniciada como <span class="font-medium text-slate-700 dark:text-slate-300">{user?.email}</span>
+      </p>
+
+      <form method="POST" action="/api/perfil/password" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" for="password">
+            Nueva contraseña
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minlength="6"
+            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" for="confirmarPassword">
+            Confirmar contraseña
+          </label>
+          <input
+            id="confirmarPassword"
+            name="confirmarPassword"
+            type="password"
+            required
+            minlength="6"
+            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
+          />
+        </div>
+        <button
+          type="submit"
+          class="rounded-xl bg-slate-900 dark:bg-cyan-600 text-white text-sm font-medium px-5 py-2.5 hover:bg-slate-800 dark:hover:bg-cyan-500 transition"
+        >
+          Actualizar contraseña
+        </button>
+      </form>
+    </section>
+  </div>
+</DashboardLayout>
+
+<script>
+  const toggle = document.getElementById('toggle-tema');
+  const perilla = document.getElementById('toggle-tema-perilla');
+  const iconoSol = document.getElementById('icono-sol');
+  const iconoLuna = document.getElementById('icono-luna');
+  const textoTema = document.getElementById('texto-tema');
+
+  function actualizarUI() {
+    const oscuro = document.documentElement.classList.contains('dark');
+
+    iconoSol?.classList.toggle('hidden', oscuro);
+    iconoLuna?.classList.toggle('hidden', !oscuro);
+    if (textoTema) textoTema.textContent = oscuro ? 'Activado' : 'Desactivado';
+
+    // Control directo del switch (no depende de que el variant
+    // "dark:" de Tailwind esté bien configurado en el proyecto).
+    toggle?.classList.toggle('bg-slate-200', !oscuro);
+    toggle?.classList.toggle('bg-cyan-600', oscuro);
+    perilla?.classList.toggle('translate-x-5', oscuro);
+  }
+
+  toggle?.addEventListener('click', () => {
+    const oscuro = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('tema', oscuro ? 'oscuro' : 'claro');
+    actualizarUI();
+  });
+
+  actualizarUI();
+</script>

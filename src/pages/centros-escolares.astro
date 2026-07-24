@@ -1,0 +1,209 @@
+---
+export const prerender = false;
+
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import CentroCard from '../components/CentroCard.astro';
+import '../styles/global.css';
+
+const { supabase, isAdmin } = Astro.locals;
+
+const { data, error } = await supabase
+  .from('centroseducativos')
+  .select('id, cod, nombre')
+  .order('nombre', { ascending: true });
+
+const centros = data ?? [];
+---
+
+<DashboardLayout title="Centros Escolares">
+  <div class="max-w-7xl mx-auto">
+    <!-- Encabezado -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Centros Escolares</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Directorio de centros registrados</p>
+      </div>
+      <a href="/centros-escolares/nuevo" class="inline-flex items-center justify-center gap-2 bg-slate-900 dark:bg-cyan-600 hover:bg-slate-800 dark:hover:bg-cyan-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Nuevo centro
+      </a>
+    </div>
+
+    {error && (
+      <div class="mb-6 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+        No se pudieron cargar los centros educativos.
+      </div>
+    )}
+
+    <!-- Buscador -->
+    <div class="relative mb-6 max-w-md">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+      </svg>
+      <input
+        id="buscador-centros"
+        type="text"
+        placeholder="Buscar por código o nombre..."
+        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
+      />
+    </div>
+
+    <!-- Grid de centros -->
+    <div id="grid-centros" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {centros.map((centro) => (
+        <CentroCard id={centro.id} cod={centro.cod} nombre={centro.nombre} mostrarEliminar={isAdmin} />
+      ))}
+    </div>
+
+    <p id="sin-resultados" class="hidden text-center text-slate-500 text-sm py-16">
+      No se encontraron centros que coincidan con tu búsqueda.
+    </p>
+
+    {centros.length === 0 && !error && (
+      <div class="text-center py-16">
+        <p class="text-slate-500">Aún no hay centros educativos registrados.</p>
+        <p class="text-slate-400 text-sm mt-1">Se agregan automáticamente al crear tickets.</p>
+      </div>
+    )}
+  </div>
+</DashboardLayout>
+
+<script>
+  import Swal from 'sweetalert2';
+
+  // Configuración de un "toast" reutilizable con SweetAlert2: pequeño,
+  // en la esquina, se autocierra y con barra de progreso.
+  const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
+
+  // --- Buscador (filtra por código o nombre, sin recargar la página) ---
+  const input = document.getElementById('buscador-centros') as HTMLInputElement | null;
+  const grid = document.getElementById('grid-centros');
+  const sinResultados = document.getElementById('sin-resultados');
+
+  input?.addEventListener('input', () => {
+    const termino = input.value.trim().toLowerCase();
+    const cards = grid?.querySelectorAll<HTMLElement>('[data-centro-card]') ?? [];
+    let visibles = 0;
+
+    cards.forEach((card) => {
+      const cod = card.dataset.cod ?? '';
+      const nombre = card.dataset.nombre ?? '';
+      const coincide = cod.includes(termino) || nombre.includes(termino);
+      card.classList.toggle('hidden', !coincide);
+      if (coincide) visibles++;
+    });
+
+    sinResultados?.classList.toggle('hidden', visibles !== 0 || termino === '');
+  });
+
+  // --- Copiar al portapapeles con fallback (funciona incluso si
+  //     navigator.clipboard no está disponible o es rechazado) ---
+  async function copiarAlPortapapeles(texto: string): Promise<boolean> {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(texto);
+        return true;
+      } catch {
+        // sigue al fallback de abajo
+      }
+    }
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = texto;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const exito = document.execCommand('copy');
+      textarea.remove();
+      return exito;
+    } catch {
+      return false;
+    }
+  }
+
+  // --- Botón/card copiar con animación + notificación (delegación de eventos) ---
+  document.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+
+    // Botón "Eliminar" (solo visible para administradores). Se revisa
+    // primero porque está DENTRO de la card clickeable: si no
+    // cortamos aquí, también dispararía la lógica de copiado de abajo.
+    const deleteBtn = target.closest('[data-delete-centro]') as HTMLElement | null;
+    if (deleteBtn) {
+      const id = deleteBtn.dataset.deleteCentro;
+
+      const confirmacion = await Swal.fire({
+        title: '¿Eliminar este centro educativo?',
+        text: 'Esta acción no se puede deshacer.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc2626',
+      });
+
+      if (!confirmacion.isConfirmed) return;
+
+      const res = await fetch(`/api/centros-escolares/${id}`, { method: 'DELETE' });
+
+      if (res.ok) {
+        deleteBtn.closest('article')?.remove();
+        Toast.fire({ icon: 'success', title: 'Centro eliminado' });
+      } else {
+        Toast.fire({ icon: 'error', title: 'No se pudo eliminar el centro' });
+      }
+      return;
+    }
+
+    const btn = target.closest('[data-copy-btn]') as HTMLElement | null;
+    const card = target.closest('[data-centro-card]') as HTMLElement | null;
+    if (!btn && !card) return;
+
+    // Si se hizo click en cualquier parte de la card, usamos sus datos
+    // (aunque el click haya sido directo sobre el botón interno).
+    const origen = btn ?? card!;
+    const texto = origen.dataset.copyText ?? card?.querySelector('[data-copy-btn]')?.getAttribute('data-copy-text') ?? '';
+
+    const exito = await copiarAlPortapapeles(texto);
+    if (!exito) {
+      Toast.fire({ icon: 'error', title: 'No se pudo copiar' });
+      return;
+    }
+
+    // Flash verde momentáneo en toda la card.
+    if (card) {
+      card.classList.add('bg-emerald-50', 'border-emerald-300');
+      setTimeout(() => {
+        card.classList.remove('bg-emerald-50', 'border-emerald-300');
+      }, 600);
+    }
+
+    // Si el click fue directo sobre el botón, además animamos su ícono.
+    if (btn) {
+      const iconCopy = btn.querySelector('[data-icon-copy]');
+      const iconCheck = btn.querySelector('[data-icon-check]');
+      iconCopy?.classList.add('opacity-0', 'scale-50');
+      iconCheck?.classList.remove('opacity-0', 'scale-50');
+      setTimeout(() => {
+        iconCopy?.classList.remove('opacity-0', 'scale-50');
+        iconCheck?.classList.add('opacity-0', 'scale-50');
+      }, 1500);
+    }
+
+    Toast.fire({ icon: 'success', title: 'Copiado exitosamente' });
+  });
+</script>

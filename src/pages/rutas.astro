@@ -1,0 +1,155 @@
+---
+export const prerender = false;
+
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import RutaCard from '../components/RutaCard.astro';
+import '../styles/global.css';
+
+const { supabase } = Astro.locals;
+
+const { data, error } = await supabase
+  .from('rutas')
+  .select('id, codce, ce, fecha')
+  .order('fecha', { ascending: false });
+
+const rutas = data ?? [];
+---
+
+<DashboardLayout title="Rutas">
+  <div class="max-w-7xl mx-auto">
+    <!-- Encabezado -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Rutas</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Rutas registradas por centro educativo</p>
+      </div>
+      <a href="/rutas/nueva" class="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Nueva ruta
+      </a>
+    </div>
+
+    {error && (
+      <div class="mb-6 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+        No se pudieron cargar las rutas.
+      </div>
+    )}
+
+    <!-- Buscador -->
+    <div class="relative mb-6 max-w-md">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+      </svg>
+      <input
+        id="buscador-rutas"
+        type="text"
+        placeholder="Buscar por código o nombre de centro..."
+        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
+      />
+    </div>
+
+    <!-- Grid de rutas -->
+    <div id="grid-rutas" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {rutas.map((ruta) => (
+        <RutaCard id={ruta.id} codce={ruta.codce} ce={ruta.ce} fecha={ruta.fecha} />
+      ))}
+    </div>
+
+    <p id="sin-resultados" class="hidden text-center text-slate-500 text-sm py-16">
+      No se encontraron rutas que coincidan con tu búsqueda.
+    </p>
+
+    {rutas.length === 0 && !error && (
+      <div class="flex flex-col items-center justify-center text-center py-16 px-4">
+        <div class="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503-9.65l4.94-2.47A.75.75 0 0121 5.65v13.19a.75.75 0 01-.42.671l-5.08 2.54a.75.75 0 01-.671 0l-5.658-2.829a.75.75 0 00-.671 0l-4.94 2.47A.75.75 0 013 21.03V7.84a.75.75 0 01.42-.671l5.08-2.54a.75.75 0 01.671 0l5.658 2.829a.75.75 0 00.671 0z" />
+          </svg>
+        </div>
+        <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          No hay rutas disponibles en este momento
+        </p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">
+          Agrega una nueva para visualizarla aquí.
+        </p>
+        <a
+          href="/rutas/nueva"
+          class="inline-flex items-center gap-2 bg-slate-900 dark:bg-cyan-600 hover:bg-slate-800 dark:hover:bg-cyan-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Nueva ruta
+        </a>
+      </div>
+    )}
+  </div>
+</DashboardLayout>
+
+<script>
+  import Swal from 'sweetalert2';
+
+  const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer;
+      toast.onmouseleave = Swal.resumeTimer;
+    },
+  });
+
+  // --- Buscador (filtra por código o nombre, sin recargar la página) ---
+  const input = document.getElementById('buscador-rutas') as HTMLInputElement | null;
+  const grid = document.getElementById('grid-rutas');
+  const sinResultados = document.getElementById('sin-resultados');
+
+  input?.addEventListener('input', () => {
+    const termino = input.value.trim().toLowerCase();
+    const cards = grid?.querySelectorAll<HTMLElement>('[data-ruta-card]') ?? [];
+    let visibles = 0;
+
+    cards.forEach((card) => {
+      const codce = card.dataset.codce ?? '';
+      const ce = card.dataset.ce ?? '';
+      const coincide = codce.includes(termino) || ce.includes(termino);
+      card.classList.toggle('hidden', !coincide);
+      if (coincide) visibles++;
+    });
+
+    sinResultados?.classList.toggle('hidden', visibles !== 0 || termino === '');
+  });
+
+  // --- Eliminar ruta (con confirmación y notificación) ---
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement)?.closest('[data-delete-ruta]') as HTMLElement | null;
+    if (!btn) return;
+
+    const id = btn.dataset.deleteRuta;
+
+    const confirmacion = await Swal.fire({
+      title: '¿Eliminar esta ruta?',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc2626',
+    });
+
+    if (!confirmacion.isConfirmed) return;
+
+    const res = await fetch(`/api/rutas/${id}`, { method: 'DELETE' });
+
+    if (res.ok) {
+      btn.closest('article')?.remove();
+      Toast.fire({ icon: 'success', title: 'Ruta eliminada' });
+    } else {
+      Toast.fire({ icon: 'error', title: 'No se pudo eliminar la ruta' });
+    }
+  });
+</script>

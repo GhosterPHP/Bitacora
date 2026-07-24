@@ -1,0 +1,24 @@
+---
+export const prerender = false;
+
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import '../styles/global.css';
+---
+
+<DashboardLayout title="Reportes">
+  <div class="flex items-center justify-center min-h-[60vh]">
+    <div class="text-center max-w-sm px-4">
+      <div class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-5">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+        </svg>
+      </div>
+      <h1 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1.5">
+        No disponible por el momento
+      </h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        Esta sección está en construcción. Vuelve a intentarlo más adelante.
+      </p>
+    </div>
+  </div>
+</DashboardLayout>

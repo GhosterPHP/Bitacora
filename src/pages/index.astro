@@ -41,10 +41,10 @@ if (error) {
 }
 
 const resumen = [
-  { label: 'Total', valor: tickets.length, color: 'dark:text-slate-300, text-slate-900' },
+  { label: 'Total', valor: tickets.length, color: 'dark:text-slate-300 text-slate-900' },
   { label: 'Estudiantes', valor: tickets.filter((t) => t.tipoUsuario === 'Estudiante').length, color: 'text-indigo-600' },
   { label: 'Docentes', valor: tickets.filter((t) => t.tipoUsuario === 'Docente').length, color: 'text-teal-600' },
-  { label: 'Centros Escolares', valor: new Set(tickets.map((t) => t.codce)).size, color: 'dark:text-slate-300, text-slate-900' },
+  { label: 'Centros Escolares', valor: new Set(tickets.map((t) => t.codce)).size, color: 'dark:text-slate-300 text-slate-900' },
 ];
 ---
 

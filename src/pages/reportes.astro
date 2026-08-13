@@ -23,12 +23,25 @@ const desde = Astro.url.searchParams.get('desde') || fechaElSalvador(-30);
 const hasta = Astro.url.searchParams.get('hasta') || fechaElSalvador(0);
 
 // --- Consulta real: tickets del usuario (RLS) dentro del rango ---
+// "fecha" es timestamptz (guardada en UTC, sufijo +00). Para evitar
+// cualquier ambigüedad de zona horaria, armamos los límites en UTC
+// explícito y usamos un límite superior EXCLUSIVO (el día siguiente
+// a "hasta" a las 00:00 UTC), en vez de ".999" de milisegundos que
+// puede fallar por redondeo según la precisión del timestamp.
+const desdeISO = `${desde}T00:00:00.000Z`;
+const hastaExclusivo = new Date(`${hasta}T00:00:00.000Z`);
+hastaExclusivo.setUTCDate(hastaExclusivo.getUTCDate() + 1);
+const hastaISO = hastaExclusivo.toISOString();
+
 const { data: tickets, error } = await supabase
   .from('tickets')
   .select('codce, ce, fecha, usuario(tipo)')
-  .gte('fecha', `${desde}T00:00:00`)
-  .lte('fecha', `${hasta}T23:59:59.999`)
+  .gte('fecha', desdeISO)
+  .lt('fecha', hastaISO)
   .order('fecha', { ascending: false });
+
+// Ayuda a diagnosticar en la terminal si algo sigue sin cuadrar.
+console.log('[Reportes] rango:', desdeISO, '->', hastaISO, '| resultados:', tickets?.length ?? 0, '| error:', error);
 
 const listaTickets = tickets ?? [];
 
@@ -110,17 +123,15 @@ const urlExportar = `/api/exportar/reporte?desde=${desde}&hasta=${hasta}`;
         >
           Filtrar
         </button>
-        <a
+        <button
           id="btn-exportar"
-          href={urlExportar}
-          download={`reporte_${desde}_a_${hasta}.csv`}
-          class="inline-flex items-center gap-2 rounded-lg border border-indigo-500 dark:border-slate-700 bg-indigo-500 text-white text-sm font-medium px-3.5 py-2 hover:bg-indigo-600 dark:hover:bg-indigo-400 transition-colors"
+          type="button"
+          data-url={urlExportar}
+          data-filename={`reporte_${desde}_a_${hasta}.csv`}
+          class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-sm font-medium px-3.5 py-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white cursor-pointer"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-          </svg>
           Exportar
-        </a>
+        </button>
       </form>
     </div>
 
@@ -246,12 +257,13 @@ const urlExportar = `/api/exportar/reporte?desde=${desde}&hasta=${hasta}`;
 <script>
   import Swal from 'sweetalert2';
 
-  const btnExportar = document.getElementById('btn-exportar') as HTMLAnchorElement | null;
+  const btnExportar = document.getElementById('btn-exportar') as HTMLButtonElement | null;
 
-  btnExportar?.addEventListener('click', async (e) => {
-    e.preventDefault();
+  btnExportar?.addEventListener('click', async () => {
+    const url = btnExportar.dataset.url;
+    const filename = btnExportar.dataset.filename ?? 'reporte.csv';
+    if (!url) return;
 
-    // Alerta con animación de carga nativa de SweetAlert2
     Swal.fire({
       title: 'Generando reporte...',
       text: 'Esto tomará solo un momento',
@@ -264,18 +276,18 @@ const urlExportar = `/api/exportar/reporte?desde=${desde}&hasta=${hasta}`;
     });
 
     try {
-      const res = await fetch(btnExportar.href);
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Error al generar el reporte');
 
       const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
+      const blobUrl = window.URL.createObjectURL(blob);
       const enlaceTemporal = document.createElement('a');
-      enlaceTemporal.href = url;
-      enlaceTemporal.download = btnExportar.download || 'reporte.csv';
+      enlaceTemporal.href = blobUrl;
+      enlaceTemporal.download = filename;
       document.body.appendChild(enlaceTemporal);
       enlaceTemporal.click();
       enlaceTemporal.remove();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(blobUrl);
 
       await Swal.fire({
         icon: 'success',

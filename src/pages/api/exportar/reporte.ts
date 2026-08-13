@@ -22,11 +22,16 @@ export const GET: APIRoute = async ({ url, locals }) => {
     return new Response('Faltan las fechas del rango (desde/hasta).', { status: 400 });
   }
 
+  const desdeISO = `${desde}T00:00:00.000Z`;
+  const hastaExclusivo = new Date(`${hasta}T00:00:00.000Z`);
+  hastaExclusivo.setUTCDate(hastaExclusivo.getUTCDate() + 1);
+  const hastaISO = hastaExclusivo.toISOString();
+
   const { data, error } = await supabase
     .from('tickets')
     .select('codce, ce, fecha, usuario(tipo)')
-    .gte('fecha', `${desde}T00:00:00`)
-    .lte('fecha', `${hasta}T23:59:59.999`);
+    .gte('fecha', desdeISO)
+    .lt('fecha', hastaISO);
 
   if (error) {
     console.error('Error al generar reporte:', error);

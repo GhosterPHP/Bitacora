@@ -2,109 +2,111 @@
 export const prerender = false;
 
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import '../styles/global.css';
+import "../styles/global.css";
 const { supabase } = Astro.locals;
 
-// --- Rango de fechas: viene de la URL (?desde=...&hasta=...) o se
-//     calculan valores por defecto (últimos 30 días, hora de El
-//     Salvador) la primera vez que se entra a la página. ---
-function fechaElSalvador(offsetDias = 0): string {
-  const partes = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/El_Salvador',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date(Date.now() + offsetDias * 86400000));
-  const obtener = (t: string) => partes.find((p) => p.type === t)?.value;
-  return `${obtener('year')}-${obtener('month')}-${obtener('day')}`; // yyyy-mm-dd
-}
+const desdeParam = Astro.url.searchParams.get('desde');
+const hastaParam = Astro.url.searchParams.get('hasta');
 
-const desde = Astro.url.searchParams.get('desde') || fechaElSalvador(-30);
-const hasta = Astro.url.searchParams.get('hasta') || fechaElSalvador(0);
+// Solo se considera "seleccionado" un rango si el usuario ya envió
+// el formulario al menos una vez (existen ambos parámetros en la URL).
+const rangoSeleccionado = Boolean(desdeParam && hastaParam);
 
-// --- Consulta real: tickets del usuario (RLS) dentro del rango ---
-// "fecha" es timestamptz (guardada en UTC, sufijo +00). Para evitar
-// cualquier ambigüedad de zona horaria, armamos los límites en UTC
-// explícito y usamos un límite superior EXCLUSIVO (el día siguiente
-// a "hasta" a las 00:00 UTC), en vez de ".999" de milisegundos que
-// puede fallar por redondeo según la precisión del timestamp.
-const desdeISO = `${desde}T00:00:00.000Z`;
-const hastaExclusivo = new Date(`${hasta}T00:00:00.000Z`);
-hastaExclusivo.setUTCDate(hastaExclusivo.getUTCDate() + 1);
-const hastaISO = hastaExclusivo.toISOString();
-
-const { data: tickets, error } = await supabase
-  .from('tickets')
-  .select('codce, ce, fecha, usuario(tipo)')
-  .gte('fecha', desdeISO)
-  .lt('fecha', hastaISO)
-  .order('fecha', { ascending: false });
-
-// Ayuda a diagnosticar en la terminal si algo sigue sin cuadrar.
-console.log('[Reportes] rango:', desdeISO, '->', hastaISO, '| resultados:', tickets?.length ?? 0, '| error:', error);
-
-const listaTickets = tickets ?? [];
-
-// --- Totales por tipo de usuario (para el donut) ---
+let totalGeneral = 0;
 let totalEstudiante = 0;
 let totalDocente = 0;
-for (const t of listaTickets) {
-  const tipo = (t as any).usuario?.tipo;
-  if (tipo === 'Estudiante') totalEstudiante++;
-  else if (tipo === 'Docente') totalDocente++;
+let pctEstudiante = 0;
+let pctDocente = 0;
+let gradienteDonut = 'conic-gradient(#e2e8f0 0% 100%)';
+let ticketsPorMes: [string, number][] = [];
+let maxMes = 1;
+let topCentros: { cod: number; ce: string; total: number }[] = [];
+let maxCentro = 1;
+let mapaCentrosSize = 0;
+let error: any = null;
+
+if (rangoSeleccionado) {
+  // "fecha" es timestamptz (guardada en UTC, sufijo +00). Se arman
+  // los límites en UTC explícito, con límite superior EXCLUSIVO (el
+  // día siguiente a "hasta" a las 00:00 UTC) para evitar cualquier
+  // ambigüedad de zona horaria o redondeo de milisegundos.
+  const desdeISO = `${desdeParam}T00:00:00.000Z`;
+  const hastaExclusivo = new Date(`${hastaParam}T00:00:00.000Z`);
+  hastaExclusivo.setUTCDate(hastaExclusivo.getUTCDate() + 1);
+  const hastaISO = hastaExclusivo.toISOString();
+
+  const resultado = await supabase
+    .from('tickets')
+    .select('codce, ce, fecha, usuario(tipo)')
+    .gte('fecha', desdeISO)
+    .lt('fecha', hastaISO)
+    .order('fecha', { ascending: false });
+
+  error = resultado.error;
+  const listaTickets = resultado.data ?? [];
+
+  // Diagnóstico visible en la terminal de `npm run dev`.
+  console.log(
+    '[Reportes] rango:', desdeISO, '->', hastaISO,
+    '| resultados:', listaTickets.length,
+    '| error:', error
+  );
+
+  for (const t of listaTickets) {
+    const tipo = (t as any).usuario?.tipo;
+    if (tipo === 'Estudiante') totalEstudiante++;
+    else if (tipo === 'Docente') totalDocente++;
+  }
+  totalGeneral = totalEstudiante + totalDocente;
+  pctEstudiante = totalGeneral ? Math.round((totalEstudiante / totalGeneral) * 100) : 0;
+  pctDocente = totalGeneral ? 100 - pctEstudiante : 0;
+  gradienteDonut =
+    totalGeneral === 0
+      ? 'conic-gradient(#e2e8f0 0% 100%)'
+      : `conic-gradient(#6366f1 0% ${pctEstudiante}%, #14b8a6 ${pctEstudiante}% 100%)`;
+
+  const mapaMeses = new Map<string, number>();
+  for (const t of listaTickets) {
+    const etiqueta = new Date(t.fecha).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+    mapaMeses.set(etiqueta, (mapaMeses.get(etiqueta) ?? 0) + 1);
+  }
+  ticketsPorMes = Array.from(mapaMeses.entries()).reverse();
+  maxMes = Math.max(1, ...ticketsPorMes.map(([, v]) => v));
+
+  const mapaCentros = new Map<number, { ce: string; total: number }>();
+  for (const t of listaTickets) {
+    const actual = mapaCentros.get(t.codce) ?? { ce: t.ce, total: 0 };
+    actual.total++;
+    mapaCentros.set(t.codce, actual);
+  }
+  mapaCentrosSize = mapaCentros.size;
+  topCentros = Array.from(mapaCentros.entries())
+    .sort(([, a], [, b]) => b.total - a.total)
+    .slice(0, 5)
+    .map(([cod, v]) => ({ cod, ...v }));
+  maxCentro = Math.max(1, ...topCentros.map((c) => c.total));
 }
-const totalGeneral = totalEstudiante + totalDocente;
-const pctEstudiante = totalGeneral ? Math.round((totalEstudiante / totalGeneral) * 100) : 0;
-const pctDocente = totalGeneral ? 100 - pctEstudiante : 0;
 
-const gradienteDonut =
-  totalGeneral === 0
-    ? 'conic-gradient(#e2e8f0 0% 100%)'
-    : `conic-gradient(#6366f1 0% ${pctEstudiante}%, #14b8a6 ${pctEstudiante}% 100%)`;
-
-// --- Tickets por mes dentro del rango (para el gráfico de barras) ---
-const mapaMeses = new Map<string, number>();
-for (const t of listaTickets) {
-  const etiqueta = new Date(t.fecha).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
-  mapaMeses.set(etiqueta, (mapaMeses.get(etiqueta) ?? 0) + 1);
-}
-// Se ordenan cronológicamente (el mapa se llenó del más reciente al más viejo).
-const ticketsPorMes = Array.from(mapaMeses.entries()).reverse();
-const maxMes = Math.max(1, ...ticketsPorMes.map(([, v]) => v));
-
-// --- Centros con más tickets ---
-const mapaCentros = new Map<number, { ce: string; total: number }>();
-for (const t of listaTickets) {
-  const actual = mapaCentros.get(t.codce) ?? { ce: t.ce, total: 0 };
-  actual.total++;
-  mapaCentros.set(t.codce, actual);
-}
-const topCentros = Array.from(mapaCentros.entries())
-  .sort(([, a], [, b]) => b.total - a.total)
-  .slice(0, 5)
-  .map(([cod, v]) => ({ cod, ...v }));
-const maxCentro = Math.max(1, ...topCentros.map((c) => c.total));
-
-const urlExportar = `/api/exportar/reporte?desde=${desde}&hasta=${hasta}`;
+const urlExportar = rangoSeleccionado
+  ? `/api/exportar/reporte?desde=${desdeParam}&hasta=${hastaParam}`
+  : '';
 ---
 
 <DashboardLayout title="Reportes">
   <div class="max-w-7xl mx-auto">
-    <!-- Encabezado -->
+    <!-- Encabezado + filtro de fechas (siempre visible) -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <div>
         <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Reportes</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Resumen de actividad del sistema</p>
       </div>
 
-      <!-- Filtro de rango de fechas: formulario GET, la página se
-           recarga con los query params ?desde=...&hasta=... -->
       <form method="GET" action="/reportes" class="flex flex-wrap items-center gap-2">
         <input
           type="date"
           name="desde"
-          value={desde}
-          max={hasta}
+          value={desdeParam ?? ''}
+          max={hastaParam ?? undefined}
           required
           class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm px-3 py-2 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
         />
@@ -112,8 +114,8 @@ const urlExportar = `/api/exportar/reporte?desde=${desde}&hasta=${hasta}`;
         <input
           type="date"
           name="hasta"
-          value={hasta}
-          min={desde}
+          value={hastaParam ?? ''}
+          min={desdeParam ?? undefined}
           required
           class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm px-3 py-2 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
         />
@@ -121,136 +123,157 @@ const urlExportar = `/api/exportar/reporte?desde=${desde}&hasta=${hasta}`;
           type="submit"
           class="rounded-lg bg-slate-900 dark:bg-cyan-600 hover:bg-slate-800 dark:hover:bg-cyan-500 text-white text-sm font-medium px-3.5 py-2 transition-colors"
         >
-          Filtrar
+          Generar reporte
         </button>
-        <button
-          id="btn-exportar"
-          type="button"
-          data-url={urlExportar}
-          data-filename={`reporte_${desde}_a_${hasta}.csv`}
-          class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-sm font-medium px-3.5 py-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-        >
-          Exportar
-        </button>
+        {rangoSeleccionado && (
+          <button
+            id="btn-exportar"
+            type="button"
+            data-url={urlExportar}
+            data-filename={`reporte_${desdeParam}_a_${hastaParam}.csv`}
+            class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-sm font-medium px-3.5 py-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+          >
+            Exportar
+          </button>
+        )}
       </form>
     </div>
 
-    {error && (
-      <div class="mb-6 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm rounded-lg px-4 py-3">
-        No se pudieron cargar los datos del reporte.
+    {!rangoSeleccionado && (
+      <!-- Pantalla inicial: sin rango elegido todavía -->
+      <div class="flex flex-col items-center justify-center text-center py-24 px-4">
+        <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+          </svg>
+        </div>
+        <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          Aún no hay reportes que mostrar
+        </p>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          Selecciona un rango de fechas arriba y presiona "Generar reporte".
+        </p>
       </div>
     )}
 
-    <p class="text-xs text-slate-400 dark:text-slate-500 mb-6">
-      Mostrando resultados del {new Date(desde + 'T00:00:00').toLocaleDateString('es-SV')} al {new Date(hasta + 'T00:00:00').toLocaleDateString('es-SV')}
-    </p>
-
-    <!-- Tarjeta resumen -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5">
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Tickets</p>
-        <p class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{totalGeneral}</p>
-      </div>
-      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5">
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Estudiantes</p>
-        <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{totalEstudiante}</p>
-      </div>
-      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5">
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Docentes</p>
-        <p class="text-2xl font-bold text-teal-600 dark:text-teal-400 mt-1">{totalDocente}</p>
-      </div>
-      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5">
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Centros Atendidos</p>
-        <p class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{mapaCentros.size}</p>
-      </div>
-    </div>
-
-    <!-- Fila de gráficos -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-      <!-- Barras: tickets por mes -->
-      <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Tickets por mes</p>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Dentro del rango seleccionado</p>
-
-        {ticketsPorMes.length === 0 ? (
-          <p class="text-sm text-slate-400 dark:text-slate-500 text-center py-10">Sin tickets en este rango.</p>
-        ) : (
-          <div class="flex items-end justify-between gap-3 h-40">
-            {ticketsPorMes.map(([mes, valor]) => (
-              <div class="flex-1 flex flex-col items-center gap-2">
-                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{valor}</span>
-                <div
-                  class="w-full max-w-10 rounded-t-md bg-cyan-500 dark:bg-cyan-600 transition-all"
-                  style={`height: ${(valor / maxMes) * 100}%`}
-                ></div>
-                <span class="text-xs text-slate-400 dark:text-slate-500">{mes}</span>
-              </div>
-            ))}
+    {rangoSeleccionado && (
+      <>
+        {error && (
+          <div class="mb-6 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm rounded-lg px-4 py-3">
+            No se pudieron cargar los datos del reporte.
           </div>
         )}
-      </div>
 
-      <!-- Donut: por tipo de usuario -->
-      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Por tipo de usuario</p>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Distribución del periodo</p>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-6">
+          Mostrando resultados del {new Date(desdeParam + 'T00:00:00').toLocaleDateString('es-SV')} al {new Date(hastaParam + 'T00:00:00').toLocaleDateString('es-SV')}
+        </p>
 
-        <div class="flex items-center justify-center mb-5">
-          <div class="w-32 h-32 rounded-full flex items-center justify-center" style={`background: ${gradienteDonut}`}>
-            <div class="w-20 h-20 rounded-full bg-white dark:bg-slate-900 flex flex-col items-center justify-center">
-              <span class="text-lg font-bold text-slate-900 dark:text-slate-100">{totalGeneral}</span>
-              <span class="text-[10px] text-slate-400 dark:text-slate-500">total</span>
-            </div>
+        <!-- Tarjeta resumen -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Tickets</p>
+            <p class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{totalGeneral}</p>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Estudiantes</p>
+            <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{totalEstudiante}</p>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Docentes</p>
+            <p class="text-2xl font-bold text-teal-600 dark:text-teal-400 mt-1">{totalDocente}</p>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Centros Atendidos</p>
+            <p class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{mapaCentrosSize}</p>
           </div>
         </div>
 
-        <div class="space-y-2">
-          <div class="flex items-center justify-between text-xs">
-            <span class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-              Estudiante
-            </span>
-            <span class="font-medium text-slate-900 dark:text-slate-100">{totalEstudiante} ({pctEstudiante}%)</span>
-          </div>
-          <div class="flex items-center justify-between text-xs">
-            <span class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-              <span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
-              Docente
-            </span>
-            <span class="font-medium text-slate-900 dark:text-slate-100">{totalDocente} ({pctDocente}%)</span>
-          </div>
-        </div>
-      </div>
-    </div>
+        <!-- Fila de gráficos -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Tickets por mes</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Dentro del rango seleccionado</p>
 
-    <!-- Tabla: centros con más tickets -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-      <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Centros con más tickets</p>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Top 5 del periodo seleccionado</p>
+            {ticketsPorMes.length === 0 ? (
+              <p class="text-sm text-slate-400 dark:text-slate-500 text-center py-10">Sin tickets en este rango.</p>
+            ) : (
+              <div class="flex items-end justify-between gap-3 h-40">
+                {ticketsPorMes.map(([mes, valor]) => (
+                  <div class="flex-1 flex flex-col items-center gap-2">
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{valor}</span>
+                    <div
+                      class="w-full max-w-10 rounded-t-md bg-cyan-500 dark:bg-cyan-600 transition-all"
+                      style={`height: ${(valor / maxMes) * 100}%`}
+                    ></div>
+                    <span class="text-xs text-slate-400 dark:text-slate-500">{mes}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-      {topCentros.length === 0 ? (
-        <p class="text-sm text-slate-400 dark:text-slate-500 text-center py-10">Sin datos en este rango.</p>
-      ) : (
-        <div class="space-y-3">
-          {topCentros.map((c) => (
-            <div class="flex items-center gap-3">
-              <span class="font-mono-ticket text-xs text-slate-400 dark:text-slate-500 w-14 shrink-0">
-                {String(c.cod).padStart(5, '0')}
-              </span>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm text-slate-700 dark:text-slate-300 truncate mb-1">{c.ce}</p>
-                <div class="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                  <div class="h-full rounded-full bg-amber-500" style={`width: ${(c.total / maxCentro) * 100}%`}></div>
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Por tipo de usuario</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Distribución del periodo</p>
+
+            <div class="flex items-center justify-center mb-5">
+              <div class="w-32 h-32 rounded-full flex items-center justify-center" style={`background: ${gradienteDonut}`}>
+                <div class="w-20 h-20 rounded-full bg-white dark:bg-slate-900 flex flex-col items-center justify-center">
+                  <span class="text-lg font-bold text-slate-900 dark:text-slate-100">{totalGeneral}</span>
+                  <span class="text-[10px] text-slate-400 dark:text-slate-500">total</span>
                 </div>
               </div>
-              <span class="text-sm font-semibold text-slate-900 dark:text-slate-100 w-6 text-right shrink-0">
-                {c.total}
-              </span>
             </div>
-          ))}
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                  <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                  Estudiante
+                </span>
+                <span class="font-medium text-slate-900 dark:text-slate-100">{totalEstudiante} ({pctEstudiante}%)</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                  <span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
+                  Docente
+                </span>
+                <span class="font-medium text-slate-900 dark:text-slate-100">{totalDocente} ({pctDocente}%)</span>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-    </div>
+
+        <!-- Tabla: centros con más tickets -->
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+          <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Centros con más tickets</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Top 5 del periodo seleccionado</p>
+
+          {topCentros.length === 0 ? (
+            <p class="text-sm text-slate-400 dark:text-slate-500 text-center py-10">Sin datos en este rango.</p>
+          ) : (
+            <div class="space-y-3">
+              {topCentros.map((c) => (
+                <div class="flex items-center gap-3">
+                  <span class="font-mono-ticket text-xs text-slate-400 dark:text-slate-500 w-14 shrink-0">
+                    {String(c.cod).padStart(5, '0')}
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm text-slate-700 dark:text-slate-300 truncate mb-1">{c.ce}</p>
+                    <div class="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div class="h-full rounded-full bg-amber-500" style={`width: ${(c.total / maxCentro) * 100}%`}></div>
+                    </div>
+                  </div>
+                  <span class="text-sm font-semibold text-slate-900 dark:text-slate-100 w-6 text-right shrink-0">
+                    {c.total}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </>
+    )}
   </div>
 </DashboardLayout>
 

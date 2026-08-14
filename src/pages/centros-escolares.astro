@@ -23,12 +23,25 @@ const centros = data ?? [];
         <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Centros Escolares</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Directorio de centros registrados</p>
       </div>
-      <a href="/centros-escolares/nuevo" class="inline-flex items-center justify-center gap-2 bg-slate-900 dark:bg-cyan-600 hover:bg-slate-800 dark:hover:bg-cyan-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shrink-0">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-        Nuevo centro
-      </a>
+      <div class="flex items-center gap-2">
+        <button
+          id="btn-ayuda-centros"
+          type="button"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5zm-4.5 9.75c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5z" />
+          </svg>
+          Ayuda
+        </button>
+        <a href="/centros-escolares/nuevo" class="inline-flex items-center justify-center gap-2 bg-slate-900 dark:bg-cyan-600 hover:bg-slate-800 dark:hover:bg-cyan-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Nuevo centro
+        </a>
+      </div>
     </div>
 
     {error && (
@@ -68,10 +81,93 @@ const centros = data ?? [];
       </div>
     )}
   </div>
+
+  <div id="ayuda-centros-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 px-4 py-6 items-center justify-center">
+    <div class="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl">
+      <div class="flex items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 px-5 py-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-600 dark:text-cyan-400">Guía rápida</p>
+          <h2 class="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">Centros escolares</h2>
+        </div>
+        <button
+          id="cerrar-ayuda-centros"
+          type="button"
+          aria-label="Cerrar ayuda"
+          class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-300 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 text-sm text-slate-600 dark:text-slate-300">
+        <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+          <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">1. Directorio general</p>
+          <p>Este listado muestra todos los centros escolares registrados por el sistema, incluyendo los creados por distintos usuarios.</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+          <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">2. Búsqueda ágil</p>
+          <p>Se puede buscar fácilmente por <span class="font-medium text-slate-900 dark:text-slate-100">nombre</span> o por <span class="font-medium text-slate-900 dark:text-slate-100">código</span> para localizar un centro de forma rápida.</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+          <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">3. Registro de centros</p>
+          <p>Se pueden agregar nuevos centros en cualquier momento según sea necesario, sin limitar la operación a una fecha o proceso específico.</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+          <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">4. Copia rápida</p>
+          <p>El botón de copiar prepara el código en el formato <span class="font-medium text-slate-900 dark:text-slate-100">13384-CENTRO ESCOLAR CANTON ALTO EL ROBLE</span>, listo para pegar en otros registros o documentos.</p>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-200 dark:border-slate-800 px-5 py-4 flex justify-end">
+        <button
+          id="confirmar-ayuda-centros"
+          type="button"
+          class="rounded-lg bg-slate-900 dark:bg-cyan-600 hover:bg-slate-800 dark:hover:bg-cyan-500 px-4 py-2 text-sm font-medium text-white transition-colors"
+        >
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
 </DashboardLayout>
 
 <script>
   import Swal from 'sweetalert2';
+
+  const modalAyudaCentros = document.getElementById('ayuda-centros-modal');
+  const btnAbrirAyudaCentros = document.getElementById('btn-ayuda-centros');
+  const btnCerrarAyudaCentros = document.getElementById('cerrar-ayuda-centros');
+  const btnConfirmarAyudaCentros = document.getElementById('confirmar-ayuda-centros');
+
+  const abrirAyudaCentros = () => {
+    modalAyudaCentros?.classList.remove('hidden');
+    modalAyudaCentros?.classList.add('flex');
+  };
+  const cerrarAyudaCentros = () => {
+    modalAyudaCentros?.classList.add('hidden');
+    modalAyudaCentros?.classList.remove('flex');
+  };
+
+  btnAbrirAyudaCentros?.addEventListener('click', abrirAyudaCentros);
+  btnCerrarAyudaCentros?.addEventListener('click', cerrarAyudaCentros);
+  btnConfirmarAyudaCentros?.addEventListener('click', cerrarAyudaCentros);
+
+  modalAyudaCentros?.addEventListener('click', (event) => {
+    if (event.target === modalAyudaCentros) {
+      cerrarAyudaCentros();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && modalAyudaCentros && !modalAyudaCentros.classList.contains('hidden')) {
+      cerrarAyudaCentros();
+    }
+  });
 
   // Configuración de un "toast" reutilizable con SweetAlert2: pequeño,
   // en la esquina, se autocierra y con barra de progreso.

@@ -66,6 +66,39 @@ const exitoMessage = url.searchParams.get('exito');
       </div>
     </section>
 
+    <!-- Formato del reloj -->
+    <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+      <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Formato del reloj</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Cambia la hora entre formato de 24 horas y 12 horas</p>
+
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-cyan-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-slate-900 dark:text-slate-100">Formato 24h</p>
+            <p id="texto-reloj" class="text-xs text-slate-500 dark:text-slate-400">24 horas</p>
+          </div>
+        </div>
+
+        <button
+          id="toggle-reloj"
+          type="button"
+          role="switch"
+          aria-label="Alternar formato de reloj"
+          class="relative w-12 h-7 rounded-full bg-slate-200 transition-colors shrink-0"
+        >
+          <span
+            id="toggle-reloj-perilla"
+            class="absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
+          ></span>
+        </button>
+      </div>
+    </section>
+
     <!-- Exportar datos -->
     <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
       <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Exportar datos</h2>
@@ -148,6 +181,15 @@ const exitoMessage = url.searchParams.get('exito');
   const iconoLuna = document.getElementById('icono-luna');
   const textoTema = document.getElementById('texto-tema');
 
+  const toggleReloj = document.getElementById('toggle-reloj');
+  const perillaReloj = document.getElementById('toggle-reloj-perilla');
+  const textoReloj = document.getElementById('texto-reloj');
+
+  function getFormatoHora() {
+    const valor = localStorage.getItem('formatoHora');
+    return valor === '12h' ? '12h' : '24h';
+  }
+
   function actualizarUI() {
     const oscuro = document.documentElement.classList.contains('dark');
 
@@ -160,12 +202,26 @@ const exitoMessage = url.searchParams.get('exito');
     toggle?.classList.toggle('bg-slate-200', !oscuro);
     toggle?.classList.toggle('bg-cyan-600', oscuro);
     perilla?.classList.toggle('translate-x-5', oscuro);
+
+    const formato = getFormatoHora();
+    const activo = formato === '12h';
+    if (textoReloj) textoReloj.textContent = activo ? '12 horas' : '24 horas';
+    toggleReloj?.classList.toggle('bg-slate-200', !activo);
+    toggleReloj?.classList.toggle('bg-cyan-600', activo);
+    perillaReloj?.classList.toggle('translate-x-5', activo);
   }
 
   toggle?.addEventListener('click', () => {
     const oscuro = document.documentElement.classList.toggle('dark');
     localStorage.setItem('tema', oscuro ? 'oscuro' : 'claro');
     actualizarUI();
+  });
+
+  toggleReloj?.addEventListener('click', () => {
+    const formato = getFormatoHora() === '12h' ? '24h' : '12h';
+    localStorage.setItem('formatoHora', formato);
+    actualizarUI();
+    window.dispatchEvent(new CustomEvent('formato-reloj-cambiado', { detail: { formato } }));
   });
 
   actualizarUI();

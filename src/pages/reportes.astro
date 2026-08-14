@@ -2,8 +2,21 @@
 export const prerender = false;
 
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import "../styles/global.css";
+import '../styles/global.css';
 const { supabase } = Astro.locals;
+
+// Extrae la fecha (yyyy-mm-dd) de un Date en la zona horaria de
+// El Salvador, sin depender de en qué timezone corra el servidor.
+function ymdElSalvador(fecha: Date): string {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/El_Salvador',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(fecha);
+  const obtener = (t: string) => partes.find((p) => p.type === t)?.value;
+  return `${obtener('year')}-${obtener('month')}-${obtener('day')}`;
+}
 
 const desdeParam = Astro.url.searchParams.get('desde');
 const hastaParam = Astro.url.searchParams.get('hasta');
@@ -11,6 +24,7 @@ const hastaParam = Astro.url.searchParams.get('hasta');
 // Solo se considera "seleccionado" un rango si el usuario ya envió
 // el formulario al menos una vez (existen ambos parámetros en la URL).
 const rangoSeleccionado = Boolean(desdeParam && hastaParam);
+const rangoInvertido = rangoSeleccionado && desdeParam! > hastaParam!;
 
 let totalGeneral = 0;
 let totalEstudiante = 0;
@@ -18,14 +32,15 @@ let totalDocente = 0;
 let pctEstudiante = 0;
 let pctDocente = 0;
 let gradienteDonut = 'conic-gradient(#e2e8f0 0% 100%)';
-let ticketsPorMes: [string, number][] = [];
-let maxMes = 1;
+let barrasGrafico: { etiqueta: string; valor: number }[] = [];
+let maxBarra = 1;
+let tituloGrafico = 'Tickets por día';
 let topCentros: { cod: number; ce: string; total: number }[] = [];
 let maxCentro = 1;
 let mapaCentrosSize = 0;
 let error: any = null;
 
-if (rangoSeleccionado) {
+if (rangoSeleccionado && !rangoInvertido) {
   // "fecha" es timestamptz (guardada en UTC, sufijo +00). Se arman
   // los límites en UTC explícito, con límite superior EXCLUSIVO (el
   // día siguiente a "hasta" a las 00:00 UTC) para evitar cualquier
@@ -45,13 +60,6 @@ if (rangoSeleccionado) {
   error = resultado.error;
   const listaTickets = resultado.data ?? [];
 
-  // Diagnóstico visible en la terminal de `npm run dev`.
-  console.log(
-    '[Reportes] rango:', desdeISO, '->', hastaISO,
-    '| resultados:', listaTickets.length,
-    '| error:', error
-  );
-
   for (const t of listaTickets) {
     const tipo = (t as any).usuario?.tipo;
     if (tipo === 'Estudiante') totalEstudiante++;
@@ -65,13 +73,52 @@ if (rangoSeleccionado) {
       ? 'conic-gradient(#e2e8f0 0% 100%)'
       : `conic-gradient(#6366f1 0% ${pctEstudiante}%, #14b8a6 ${pctEstudiante}% 100%)`;
 
-  const mapaMeses = new Map<string, number>();
-  for (const t of listaTickets) {
-    const etiqueta = new Date(t.fecha).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
-    mapaMeses.set(etiqueta, (mapaMeses.get(etiqueta) ?? 0) + 1);
+  // Rango corto (<=31 días) -> se agrupa por DÍA, incluyendo los días
+  // sin tickets (para que el gráfico se vea continuo, no disperso).
+  // Rango largo -> se agrupa por MES, como antes.
+  const msPorDia = 24 * 60 * 60 * 1000;
+  const diasEnRango =
+    Math.round(
+      (new Date(`${hastaParam}T00:00:00Z`).getTime() - new Date(`${desdeParam}T00:00:00Z`).getTime()) / msPorDia
+    ) + 1;
+
+  if (diasEnRango <= 31) {
+    tituloGrafico = 'Tickets por día';
+
+    const conteoPorDia = new Map<string, number>();
+    for (const t of listaTickets) {
+      const dia = ymdElSalvador(new Date(t.fecha));
+      conteoPorDia.set(dia, (conteoPorDia.get(dia) ?? 0) + 1);
+    }
+
+    // Genera TODOS los días del rango (aunque tengan 0 tickets), para
+    // que el gráfico se vea como una línea de tiempo continua.
+    const dias: { etiqueta: string; valor: number }[] = [];
+    const cursor = new Date(`${desdeParam}T00:00:00Z`);
+    const fin = new Date(`${hastaParam}T00:00:00Z`);
+    while (cursor <= fin) {
+      const clave = ymdElSalvador(cursor);
+      dias.push({
+        etiqueta: String(cursor.getUTCDate()),
+        valor: conteoPorDia.get(clave) ?? 0,
+      });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    barrasGrafico = dias;
+  } else {
+    tituloGrafico = 'Tickets por mes';
+
+    const mapaMeses = new Map<string, number>();
+    for (const t of listaTickets) {
+      const etiqueta = new Date(t.fecha).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+      mapaMeses.set(etiqueta, (mapaMeses.get(etiqueta) ?? 0) + 1);
+    }
+    barrasGrafico = Array.from(mapaMeses.entries())
+      .reverse()
+      .map(([etiqueta, valor]) => ({ etiqueta, valor }));
   }
-  ticketsPorMes = Array.from(mapaMeses.entries()).reverse();
-  maxMes = Math.max(1, ...ticketsPorMes.map(([, v]) => v));
+
+  maxBarra = Math.max(1, ...barrasGrafico.map((b) => b.valor));
 
   const mapaCentros = new Map<number, { ce: string; total: number }>();
   for (const t of listaTickets) {
@@ -101,45 +148,75 @@ const urlExportar = rangoSeleccionado
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Resumen de actividad del sistema</p>
       </div>
 
-      <form method="GET" action="/reportes" class="flex flex-wrap items-center gap-2">
-        <input
-          type="date"
-          name="desde"
-          value={desdeParam ?? ''}
-          max={hastaParam ?? undefined}
-          required
-          class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm px-3 py-2 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
-        />
-        <span class="text-slate-400 dark:text-slate-500 text-sm">a</span>
-        <input
-          type="date"
-          name="hasta"
-          value={hastaParam ?? ''}
-          min={desdeParam ?? undefined}
-          required
-          class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm px-3 py-2 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
-        />
+      <div class="flex flex-wrap items-center gap-2">
         <button
-          type="submit"
-          class="rounded-lg bg-slate-900 dark:bg-cyan-600 hover:bg-slate-800 dark:hover:bg-cyan-500 text-white text-sm font-medium px-3.5 py-2 transition-colors"
+          id="btn-ayuda-reportes"
+          type="button"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
         >
-          Generar reporte
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5zm-4.5 9.75c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5z" />
+          </svg>
+          Ayuda
         </button>
-        {rangoSeleccionado && (
+
+        <form method="GET" action="/reportes" class="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            name="desde"
+            value={desdeParam ?? ''}
+            max={hastaParam ?? undefined}
+            required
+            class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm px-3 py-2 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
+          />
+          <span class="text-slate-400 dark:text-slate-500 text-sm">a</span>
+          <input
+            type="date"
+            name="hasta"
+            value={hastaParam ?? ''}
+            min={desdeParam ?? undefined}
+            required
+            class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm px-3 py-2 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
+          />
           <button
-            id="btn-exportar"
-            type="button"
-            data-url={urlExportar}
-            data-filename={`reporte_${desdeParam}_a_${hastaParam}.csv`}
-            class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-sm font-medium px-3.5 py-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+            type="submit"
+            class="rounded-lg bg-slate-900 dark:bg-cyan-600 hover:bg-slate-800 dark:hover:bg-cyan-500 text-white text-sm font-medium px-3.5 py-2 transition-colors"
           >
-            Exportar
+            Generar reporte
           </button>
-        )}
-      </form>
+          {rangoSeleccionado && (
+            <button
+              id="btn-exportar"
+              type="button"
+              data-url={urlExportar}
+              data-filename={`reporte_${desdeParam}_a_${hastaParam}.csv`}
+              class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-sm font-medium px-3.5 py-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+            >
+              Exportar
+            </button>
+          )}
+        </form>
+      </div>
     </div>
 
-    {!rangoSeleccionado && (
+    {rangoInvertido && (
+      <div class="flex flex-col items-center justify-center text-center py-24 px-4">
+        <div class="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+        </div>
+        <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          El rango de fechas no es válido
+        </p>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          La fecha "desde" ({desdeParam}) es posterior a "hasta" ({hastaParam}). Corrige el orden e intenta de nuevo.
+        </p>
+      </div>
+    )}
+
+    {!rangoSeleccionado && !rangoInvertido && (
       <div class="flex flex-col items-center justify-center text-center py-24 px-4">
         <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -155,7 +232,55 @@ const urlExportar = rangoSeleccionado
       </div>
     )}
 
-    {rangoSeleccionado && (
+    <div id="ayuda-reportes-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 px-4 py-6 items-center justify-center">
+      <div class="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl">
+        <div class="flex items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 px-5 py-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-600 dark:text-cyan-400">Guía rápida</p>
+            <h2 class="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">Reportes</h2>
+          </div>
+          <button
+            id="cerrar-ayuda-reportes"
+            type="button"
+            aria-label="Cerrar ayuda"
+            class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-300 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="p-5 space-y-4 text-sm text-slate-600 dark:text-slate-300">
+          <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+            <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">1. Selección de rango</p>
+            <p>Define un periodo de fechas para generar el conteo de tickets. Puede usarse un rango mensual, por ejemplo del 22 de julio al 22 de agosto.</p>
+          </div>
+
+          <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+            <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">2. Inclusión del último día</p>
+            <p>El sistema toma el rango completo y considera también el día final aunque no exista registro en esa fecha, siempre que esté dentro del periodo.</p>
+          </div>
+
+          <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+            <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">3. Exportación</p>
+            <p>Una vez generado el reporte, puedes exportarlo en CSV para llenar fácilmente documentos oficiales o administrativos que requieran ese cálculo.</p>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-200 dark:border-slate-800 px-5 py-4 flex justify-end">
+          <button
+            id="confirmar-ayuda-reportes"
+            type="button"
+            class="rounded-lg bg-slate-900 dark:bg-cyan-600 hover:bg-slate-800 dark:hover:bg-cyan-500 px-4 py-2 text-sm font-medium text-white transition-colors"
+          >
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {rangoSeleccionado && !rangoInvertido && (
       <>
         {error && (
           <div class="mb-6 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-sm rounded-lg px-4 py-3">
@@ -190,23 +315,31 @@ const urlExportar = rangoSeleccionado
         <!-- Fila de gráficos -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Tickets por mes</p>
+            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">{tituloGrafico}</p>
             <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">Dentro del rango seleccionado</p>
 
-            {ticketsPorMes.length === 0 ? (
+            {barrasGrafico.every((b) => b.valor === 0) ? (
               <p class="text-sm text-slate-400 dark:text-slate-500 text-center py-10">Sin tickets en este rango.</p>
             ) : (
-              <div class="flex items-end justify-between gap-3 h-40">
-                {ticketsPorMes.map(([mes, valor]) => (
-                  <div class="flex-1 flex flex-col items-center gap-2">
-                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{valor}</span>
-                    <div
-                      class="w-full max-w-10 rounded-t-md bg-cyan-500 dark:bg-cyan-600 transition-all"
-                      style={`height: ${(valor / maxMes) * 100}%`}
-                    ></div>
-                    <span class="text-xs text-slate-400 dark:text-slate-500">{mes}</span>
-                  </div>
-                ))}
+              <div class="flex items-end justify-between gap-1.5 sm:gap-3 overflow-x-auto">
+                {barrasGrafico.map((b) => {
+                  const alturaMaxPx = 140;
+                  const alturaPx = Math.max(3, Math.round((b.valor / maxBarra) * alturaMaxPx));
+                  return (
+                    <div class="flex-1 min-w-2 flex flex-col items-center gap-2">
+                      <span class="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">
+                        {b.valor > 0 ? b.valor : ''}
+                      </span>
+                      <div class="w-full flex items-end justify-center" style={`height: ${alturaMaxPx}px`}>
+                        <div
+                          class="w-full max-w-10 rounded-t-md bg-cyan-500 dark:bg-cyan-600 transition-all"
+                          style={`height: ${alturaPx}px`}
+                        ></div>
+                      </div>
+                      <span class="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500">{b.etiqueta}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -278,6 +411,36 @@ const urlExportar = rangoSeleccionado
 
 <script>
   import Swal from 'sweetalert2';
+
+  const modalAyudaReportes = document.getElementById('ayuda-reportes-modal');
+  const btnAbrirAyudaReportes = document.getElementById('btn-ayuda-reportes');
+  const btnCerrarAyudaReportes = document.getElementById('cerrar-ayuda-reportes');
+  const btnConfirmarAyudaReportes = document.getElementById('confirmar-ayuda-reportes');
+
+  const abrirAyudaReportes = () => {
+    modalAyudaReportes?.classList.remove('hidden');
+    modalAyudaReportes?.classList.add('flex');
+  };
+  const cerrarAyudaReportes = () => {
+    modalAyudaReportes?.classList.add('hidden');
+    modalAyudaReportes?.classList.remove('flex');
+  };
+
+  btnAbrirAyudaReportes?.addEventListener('click', abrirAyudaReportes);
+  btnCerrarAyudaReportes?.addEventListener('click', cerrarAyudaReportes);
+  btnConfirmarAyudaReportes?.addEventListener('click', cerrarAyudaReportes);
+
+  modalAyudaReportes?.addEventListener('click', (event) => {
+    if (event.target === modalAyudaReportes) {
+      cerrarAyudaReportes();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && modalAyudaReportes && !modalAyudaReportes.classList.contains('hidden')) {
+      cerrarAyudaReportes();
+    }
+  });
 
   const btnExportar = document.getElementById('btn-exportar') as HTMLButtonElement | null;
 

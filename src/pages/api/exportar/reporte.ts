@@ -66,8 +66,9 @@ export const GET: APIRoute = async ({ url, locals }) => {
     });
 
   const csv = aCsv(filas);
+  const csvConBom = `\uFEFF${csv}`;
 
-  return new Response(csv, {
+  return new Response(csvConBom, {
     status: 200,
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',

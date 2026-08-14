@@ -2,12 +2,14 @@
 // (para que se muestre de nuevo a todos aunque ya hayan leído
 // versiones anteriores) y actualiza el título/lista de cambios.
 export const AVISO_ACTUAL = {
-  id: 'reportes-2026-08',
-  titulo: 'Novedades en Reportes',
+  id: 'bitacora-v2-5-2026-08',
+  titulo: 'Actualización Bitácora v2.5',
   cambios: [
-    'Filtro por rango de fechas: elige "desde" y "hasta" para acotar los resultados.',
-    'Totales reales de tickets, separados por Estudiante y Docente.',
-    'Gráfico de tickets por mes y ranking de los centros con más tickets, calculados desde tus datos.',
-    'Botón de exportar a CSV con el detalle por centro educativo.',
+    'Mejora visual en las tarjetas de tickets: más compactas, más legibles y con iconos por tipo de usuario.',
+    'Nuevo formato de reloj configurable en Configuración: cambia entre 24 horas y 12 horas.',
+    'Modo oscuro y ajustes de apariencia más claros y consistentes en toda la app.',
+    'Se corrigió la fecha de rutas para respetar el valor real de la columna fecha y evitar desfases por zona horaria.',
+    'Formularios actualizados para permitir ingresar la fecha manualmente en nuevas rutas.',
+    'Se mejoró la experiencia de los centros y reportes con datos más consistentes y visibles.',
   ],
 };

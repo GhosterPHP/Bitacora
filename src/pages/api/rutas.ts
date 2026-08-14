@@ -7,9 +7,14 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 
   const formData = await request.formData();
   const centroId = String(formData.get('centroId') ?? '');
+  const fecha = String(formData.get('fecha') ?? '').trim();
 
   if (!centroId) {
     return redirect('/rutas/nueva?error=' + encodeURIComponent('Selecciona un centro educativo.'));
+  }
+
+  if (!fecha) {
+    return redirect('/rutas/nueva?error=' + encodeURIComponent('Ingresa la fecha de la ruta.'));
   }
 
   // Se busca el codce/nombre en la base de datos a partir del id
@@ -25,9 +30,11 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     return redirect('/rutas/nueva?error=' + encodeURIComponent('El centro educativo seleccionado no es válido.'));
   }
 
-  // No enviamos "creado_por" ni "fecha": ambas columnas tienen sus
-  // propios default (auth.uid() y now()), Supabase las llena solas.
-  const { error } = await supabase.from('rutas').insert({ codce: centro.cod, ce: centro.nombre });
+  const { error } = await supabase.from('rutas').insert({
+    codce: centro.cod,
+    ce: centro.nombre,
+    fecha,
+  });
 
   if (error) {
     console.error('Error al crear ruta:', error);

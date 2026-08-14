@@ -15,7 +15,16 @@ let tickets: {
   fecha: string;
 }[] = [];
 
+
 let errorConexion: string | null = null;
+
+const { data: centrosData, error: errorCentros } = await supabase
+  .from('centroseducativos')
+  .select('cod, nombre');
+
+const mapaCentros = new Map<number, string>(
+  (centrosData ?? []).map((centro: any) => [Number(centro.cod), centro.nombre ?? 'Centro sin nombre'])
+);
 
 // Nota: la relación se llama "usuario" (minúsculas) porque así quedó
 // creada en Postgres/Supabase. La FK tickets.usuario -> usuario.id
@@ -26,25 +35,30 @@ const { data, error } = await supabase
   .order('fecha', { ascending: false })
   .limit(50);
 
-if (error) {
-  console.error('Error al consultar tickets:', error);
+if (error || errorCentros) {
+  console.error('Error al consultar tickets o centros educativos:', { error, errorCentros });
   errorConexion = 'No se pudo conectar a la base de datos. Revisa las variables de entorno de Supabase y los permisos (RLS) de la tabla.';
 } else {
-  tickets = (data ?? []).map((t: any) => ({
-    id: t.id,
-    noticket: t.noticket,
-    codce: t.codce,
-    ce: t.ce,
-    fecha: t.fecha,
-    tipoUsuario: t.usuario?.tipo ?? 'Estudiante',
-  }));
+  tickets = (data ?? []).map((t: any) => {
+    const codce = Number(t.codce ?? 0);
+    const nombreCentro = mapaCentros.get(codce) ?? String(t.ce ?? 'Centro no registrado');
+
+    return {
+      id: t.id,
+      noticket: t.noticket,
+      codce,
+      ce: nombreCentro,
+      fecha: t.fecha,
+      tipoUsuario: t.usuario?.tipo ?? 'Estudiante',
+    };
+  });
 }
 
 const resumen = [
   { label: 'Total', valor: tickets.length, color: 'dark:text-slate-300 text-slate-900' },
   { label: 'Estudiantes', valor: tickets.filter((t) => t.tipoUsuario === 'Estudiante').length, color: 'text-indigo-600' },
   { label: 'Docentes', valor: tickets.filter((t) => t.tipoUsuario === 'Docente').length, color: 'text-teal-600' },
-  { label: 'Centros Escolares', valor: new Set(tickets.map((t) => t.codce)).size, color: 'dark:text-slate-300 text-slate-900' },
+  { label: 'Centros Escolares Totales', valor: new Set((centrosData ?? []).map((centro: any) => Number(centro.cod))).size, color: 'dark:text-slate-300 text-slate-900' },
 ];
 ---
 
@@ -56,12 +70,25 @@ const resumen = [
         <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Tickets</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Vista general de los registros más recientes</p>
       </div>
-      <a href="/tickets/nuevo" class="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shrink-0">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-        Nuevo ticket
-      </a>
+      <div class="flex items-center gap-2">
+        <button
+          id="btn-ayuda-tickets"
+          type="button"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5zm-4.5 9.75c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5z" />
+          </svg>
+          Ayuda
+        </button>
+        <a href="/tickets/nuevo" class="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Nuevo ticket
+        </a>
+      </div>
     </div>
 
     {errorConexion && (
@@ -100,4 +127,89 @@ const resumen = [
       </div>
     )}
   </div>
+
+  <div id="ayuda-tickets-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 px-4 py-6 items-center justify-center">
+    <div class="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl">
+      <div class="flex items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 px-5 py-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-600 dark:text-cyan-400">Guía rápida</p>
+          <h2 class="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">Sección de tickets</h2>
+        </div>
+        <button
+          id="cerrar-ayuda-tickets"
+          type="button"
+          aria-label="Cerrar ayuda"
+          class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-300 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 text-sm text-slate-600 dark:text-slate-300">
+        <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+          <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">1. Vista personal</p>
+          <p>Esta sección muestra únicamente los <span class="font-medium text-slate-900 dark:text-slate-100">tickets personales</span> del usuario activo. No verás registros de otras personas.</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+          <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">2. Crear un registro</p>
+          <p>Usa el botón de <span class="font-medium text-slate-900 dark:text-slate-100">Nuevo ticket</span> para ingresar un ticket nuevo y completar la información del centro y el tipo de usuario.</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+          <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">3. Revisar el resumen</p>
+          <p>En la parte superior verás el total de tus tickets, el conteo por estudiantes/docentes y la cantidad de centros educativos registrados.</p>
+        </div>
+
+        <div class="rounded-xl bg-slate-50 dark:bg-slate-800/80 p-3">
+          <p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">4. Consultar información rápida</p>
+          <p>Cada tarjeta muestra el número, el centro escolar, la fecha y el tipo de usuario para que puedas identificar el evento sin abrir cada registro.</p>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-200 dark:border-slate-800 px-5 py-4 flex justify-end">
+        <button
+          id="confirmar-ayuda-tickets"
+          type="button"
+          class="rounded-lg bg-slate-900 dark:bg-cyan-600 hover:bg-slate-800 dark:hover:bg-cyan-500 px-4 py-2 text-sm font-medium text-white transition-colors"
+        >
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const modalAyudaTickets = document.getElementById('ayuda-tickets-modal');
+    const btnAbrirAyudaTickets = document.getElementById('btn-ayuda-tickets');
+    const btnCerrarAyudaTickets = document.getElementById('cerrar-ayuda-tickets');
+    const btnConfirmarAyudaTickets = document.getElementById('confirmar-ayuda-tickets');
+
+    const abrirAyudaTickets = () => {
+      modalAyudaTickets?.classList.remove('hidden');
+      modalAyudaTickets?.classList.add('flex');
+    };
+    const cerrarAyudaTickets = () => {
+      modalAyudaTickets?.classList.add('hidden');
+      modalAyudaTickets?.classList.remove('flex');
+    };
+
+    btnAbrirAyudaTickets?.addEventListener('click', abrirAyudaTickets);
+    btnCerrarAyudaTickets?.addEventListener('click', cerrarAyudaTickets);
+    btnConfirmarAyudaTickets?.addEventListener('click', cerrarAyudaTickets);
+
+    modalAyudaTickets?.addEventListener('click', (event) => {
+      if (event.target === modalAyudaTickets) {
+        cerrarAyudaTickets();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modalAyudaTickets && !modalAyudaTickets.classList.contains('hidden')) {
+        cerrarAyudaTickets();
+      }
+    });
+  </script>
 </DashboardLayout>

@@ -11,7 +11,7 @@ const errorMessage = url.searchParams.get('error');
 <DashboardLayout title="Nuevo ticket">
   <div class="max-w-xl mx-auto">
     <div class="mb-6">
-      <a href="/" class="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors mb-3">
+      <a href="/" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors mb-3">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
@@ -31,6 +31,7 @@ const errorMessage = url.searchParams.get('error');
           name="noticket"
           type="text"
           required
+          inputmode="numeric"
           placeholder="#25523"
           class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
         />
@@ -103,3 +104,23 @@ const errorMessage = url.searchParams.get('error');
     </form>
   </div>
 </DashboardLayout>
+
+<script>
+  const inputNumero = document.getElementById('noticket') as HTMLInputElement | null;
+
+  const formatearNumeroTicket = (valor: string) => {
+    const limpio = valor
+      .replace(/[^\d]/g, '')
+      .replace(/^0+/, '');
+
+    return limpio ? `#${limpio}` : '';
+  };
+
+  inputNumero?.addEventListener('input', () => {
+    const valor = inputNumero.value;
+    const formateado = formatearNumeroTicket(valor);
+    if (valor !== formateado) {
+      inputNumero.value = formateado;
+    }
+  });
+</script>

@@ -8,11 +8,28 @@ interface Props {
 
 const { id, codce, ce, fecha } = Astro.props;
 
-const fechaFormateada = new Date(fecha).toLocaleDateString('es-SV', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-});
+const fechaFormateada = (() => {
+  if (!fecha) return '';
+
+  if (typeof fecha === 'string') {
+    const valor = fecha.includes('T') ? fecha.split('T')[0] : fecha;
+    const [anio, mes, dia] = valor.split('-').map(Number);
+
+    if (anio && mes && dia) {
+      return new Date(anio, mes - 1, dia).toLocaleDateString('es-SV', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
+  }
+
+  return new Date(fecha).toLocaleDateString('es-SV', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+})();
 ---
 
 <article

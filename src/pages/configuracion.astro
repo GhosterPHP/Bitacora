@@ -3,7 +3,17 @@ export const prerender = false;
 
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import '../styles/global.css';
-
+const { supabase, isAdmin } = Astro.locals;
+let historialPings: { id: number; ejecutado_en: string; centros_encontrados: number; mensaje: string }[] = [];
+ 
+if (isAdmin) {
+  const { data } = await supabase
+    .from('ping_logs')
+    .select('id, ejecutado_en, centros_encontrados, mensaje')
+    .order('ejecutado_en', { ascending: false })
+    .limit(10);
+  historialPings = data ?? [];
+}
 const { user } = Astro.locals;
 const url = new URL(Astro.request.url);
 const errorMessage = url.searchParams.get('error');
@@ -28,6 +38,46 @@ const exitoMessage = url.searchParams.get('exito');
       </div>
     )}
 
+      <!-- Mantenimiento del sistema (SOLO administradores) -->
+{isAdmin && (
+  <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+    <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Mantenimiento del sistema</h2>
+    <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+      Se ejecuta un ping automático a la base de datos cada 6 horas, todos los días, para evitar que Supabase
+      pause el proyecto por inactividad.
+    </p>
+ 
+    <button
+      id="btn-ping-manual"
+      type="button"
+      class="mb-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+    >
+      Ejecutar ping ahora
+    </button>
+ 
+    <div class="border-t border-slate-100 dark:border-slate-800 pt-4">
+      <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">Últimos pings</p>
+ 
+      {historialPings.length === 0 ? (
+        <p class="text-sm text-slate-400 dark:text-slate-500">Todavía no hay pings registrados.</p>
+      ) : (
+        <ul class="space-y-2">
+          {historialPings.map((log) => (
+            <li class="flex items-center justify-between text-xs">
+              <span class="text-slate-500 dark:text-slate-400">
+                {new Date(log.ejecutado_en).toLocaleString('es-SV', {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                })}
+              </span>
+              <span class="text-slate-700 dark:text-slate-300">{log.mensaje}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </section>
+)}
     <!-- Apariencia -->
     <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
       <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Apariencia</h2>
@@ -175,6 +225,8 @@ const exitoMessage = url.searchParams.get('exito');
 </DashboardLayout>
 
 <script>
+  import Swal from 'sweetalert2';
+
   const toggle = document.getElementById('toggle-tema');
   const perilla = document.getElementById('toggle-tema-perilla');
   const iconoSol = document.getElementById('icono-sol');
@@ -225,4 +277,35 @@ const exitoMessage = url.searchParams.get('exito');
   });
 
   actualizarUI();
+
+  // --- Ping manual (solo visible/funcional para administradores;
+  //     el botón solo existe en el DOM si isAdmin es true) ---
+  const btnPing = document.getElementById('btn-ping-manual');
+
+  btnPing?.addEventListener('click', async () => {
+    Swal.fire({
+      title: 'Ejecutando ping...',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+      const res = await fetch('/api/ping/ejecutar', { method: 'POST' });
+      if (!res.ok) throw new Error('Error al ejecutar ping');
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Ping ejecutado',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      window.location.reload(); // refresca para mostrar el nuevo log
+    } catch (err) {
+      console.error(err);
+      await Swal.fire({ icon: 'error', title: 'No se pudo ejecutar el ping' });
+    }
+  });
 </script>

@@ -55,10 +55,34 @@ if (error || errorCentros) {
 }
 
 const resumen = [
-  { label: 'Total', valor: tickets.length, color: 'dark:text-slate-300 text-slate-900' },
-  { label: 'Estudiantes', valor: tickets.filter((t) => t.tipoUsuario === 'Estudiante').length, color: 'text-indigo-600' },
-  { label: 'Docentes', valor: tickets.filter((t) => t.tipoUsuario === 'Docente').length, color: 'text-teal-600' },
-  { label: 'Centros Escolares Totales', valor: new Set((centrosData ?? []).map((centro: any) => Number(centro.cod))).size, color: 'dark:text-slate-300 text-slate-900' },
+{ 
+    label: 'Total', 
+    valor: tickets.length, 
+    color: 'dark:text-slate-100 text-slate-900',
+    iconBg: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 ring-slate-200/60 dark:ring-slate-700/60',
+    icon: 'ticket'
+  },
+  { 
+    label: 'Estudiantes', 
+    valor: tickets.filter((t) => t.tipoUsuario === 'Estudiante').length, 
+    color: 'text-indigo-600 dark:text-indigo-400',
+    iconBg: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 ring-indigo-200/60 dark:ring-indigo-800/50',
+    icon: 'graduation'
+  },
+  { 
+    label: 'Docentes', 
+    valor: tickets.filter((t) => t.tipoUsuario === 'Docente').length, 
+    color: 'text-teal-600 dark:text-emerald-400',
+    iconBg: 'bg-teal-50 text-teal-600 dark:bg-teal-950/60 dark:text-teal-400 ring-teal-200/60 dark:ring-teal-800/50',
+    icon: 'person'
+  },
+  { 
+    label: 'Centros Escolares Totales', 
+    valor: new Set((centrosData ?? []).map((centro: any) => Number(centro.cod))).size, 
+    color: 'dark:text-slate-100 text-slate-900',
+    iconBg: 'bg-sky-50 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400 ring-sky-200/60 dark:ring-sky-800/50',
+    icon: 'school'
+  },
 ];
 ---
 
@@ -74,7 +98,7 @@ const resumen = [
         <button
           id="btn-ayuda-tickets"
           type="button"
-          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5zm-4.5 9.75c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" />
@@ -82,7 +106,7 @@ const resumen = [
           </svg>
           Ayuda
         </button>
-        <a href="/tickets/nuevo" class="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shrink-0">
+        <a href="/tickets/nuevo" class="inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800  text-slate-700 dark:text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shrink-0 border border-slate-200 dark:border-slate-700">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
@@ -97,15 +121,44 @@ const resumen = [
       </div>
     )}
 
-    <!-- Resumen -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-      {resumen.map((item) => (
-        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5">
-          <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{item.label}</p>
-          <p class:list={['text-2xl font-bold mt-1', item.color]}>{item.valor}</p>
-        </div>
-      ))}
+<!-- Resumen -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+  {resumen.map((item) => (
+    <div class="group bg-white dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 sm:p-4 shadow-xs hover:shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 truncate">
+          {item.label}
+        </p>
+        <p class:list={['text-2xl sm:text-3xl font-bold tracking-tight mt-0.5', item.color]}>
+          {item.valor}
+        </p>
+      </div>
+
+      <div class:list={['flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg ring-1 shrink-0 group-hover:scale-105 transition-transform duration-200', item.iconBg]}>
+        {item.icon === 'ticket' && (
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+          </svg>
+        )}
+        {item.icon === 'graduation' && (
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-5.25 6.557c0 1.25.75 2.25 2.25 2.25" />
+          </svg>
+        )}
+        {item.icon === 'person' && (
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+          </svg>
+        )}
+        {item.icon === 'school' && (
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.333A1.167 1.167 0 0 0 19.333 9H4.667A1.167 1.167 0 0 0 3.5 10.333V21h17Z" />
+          </svg>
+        )}
+      </div>
     </div>
+  ))}
+</div>
 
     <!-- Grid de tickets -->
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">

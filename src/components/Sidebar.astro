@@ -1,9 +1,10 @@
 ---
 interface Props {
   userEmail?: string | null;
+  isAdmin?: boolean;
 }
 
-const { userEmail = null } = Astro.props;
+const { userEmail = null, isAdmin = false } = Astro.props;
 
 // Genera iniciales a partir del email (ej. "ana.lopez@empresa.com" -> "AL")
 function getIniciales(email: string | null) {
@@ -62,9 +63,6 @@ const menuItems = [
   { label: 'Configuración', href: '/configuracion', icon: 'gear' },
 ].map((item) => ({
   ...item,
-  // "/" solo se marca activo en la home exacta; el resto, si la ruta
-  // actual empieza con su href (para que subrutas como /tickets/8
-  // también resalten "Tickets").
   active: item.href === '/' ? rutaActual === '/' : rutaActual.startsWith(item.href),
 }));
 
@@ -72,36 +70,41 @@ const icons: Record<string, string> = {
   ticket: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
   route: 'M9 6.75V15m6-6v8.25m.503-9.65l4.94-2.47A.75.75 0 0121 5.65v13.19a.75.75 0 01-.42.671l-5.08 2.54a.75.75 0 01-.671 0l-5.658-2.829a.75.75 0 00-.671 0l-4.94 2.47A.75.75 0 013 21.03V7.84a.75.75 0 01.42-.671l5.08-2.54a.75.75 0 01.671 0l5.658 2.829a.75.75 0 00.671 0z',
   building: 'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21',
-  users: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-8.13a4 4 0 11-8 0 4 4 0 018 0zm6 3a4 4 0 11-8 0 4 4 0 018 0z',
   chart: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
   gear: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
 };
 ---
 
+<!--
+  Esquema de color INVERTIDO respecto al resto de la app:
+  - Tema claro global -> sidebar OSCURO (slate-900), como siempre.
+  - Tema oscuro global -> sidebar CLARO (blanco), para que siempre
+    haya contraste y se distinga del contenido principal.
+-->
 <aside
   id="sidebar"
-  class="fixed lg:sticky top-0 left-0 z-40 h-screen w-64 shrink-0 -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out bg-slate-900 text-slate-300 flex flex-col"
+  class="fixed lg:sticky top-0 left-0 z-40 h-screen w-64 shrink-0 -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out bg-slate-900 dark:bg-slate-200 text-slate-300 dark:text-slate-600 flex flex-col"
 >
   <!-- Marca -->
-  <div class="flex items-center gap-2.5 px-5 h-16 border-b border-slate-800 shrink-0">
-    <div class="w-8 h-8 rounded-lg bg-cyan-400 flex items-center justify-center">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-900" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+  <div class="flex items-center gap-2.5 px-5 h-16 border-b border-slate-800 dark:border-slate-300 shrink-0">
+    <div class="w-8 h-8 rounded-lg bg-cyan-400 dark:bg-cyan-600 flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d={icons.ticket} />
       </svg>
     </div>
-    <span class="text-white font-semibold tracking-tight">Bitacora de Actividades</span>
+    <span class="text-white dark:text-slate-900 font-semibold tracking-tight">Bitácora</span>
   </div>
 
   <!-- Reloj (hora de El Salvador) -->
-  <div class="flex items-center gap-2 px-5 py-3 border-b border-slate-800 dark:border-slate-800 shrink-0">
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 dark:text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+  <div class="flex items-center gap-2 px-5 py-3 border-b border-slate-800 dark:border-slate-300 shrink-0">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
     <div class="leading-tight">
-      <span id="reloj-el-salvador" class="font-mono-ticket text-sm text-white dark:text-white tracking-wide tabular-nums">
+      <span id="reloj-el-salvador" class="font-mono-ticket text-sm text-white dark:text-slate-900 tracking-wide tabular-nums">
         {horaInicial}
       </span>
-      <p class="text-[10px] text-slate-500 dark:text-slate-500">Hora de El Salvador</p>
+      <p class="text-[10px] text-slate-500 dark:text-slate-400">Hora de El Salvador</p>
     </div>
   </div>
 
@@ -113,8 +116,8 @@ const icons: Record<string, string> = {
         class:list={[
           'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
           item.active
-            ? 'bg-slate-800 text-white border-l-2 border-cyan-400 -ml-[2px] pl-[calc(0.75rem+2px)]'
-            : 'text-slate-400 hover:bg-slate-800/60 hover:text-white',
+            ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 border-l-2 border-cyan-400 dark:border-cyan-600 -ml-[2px] pl-[calc(0.75rem+2px)]'
+            : 'text-slate-400 dark:text-slate-500 hover:bg-slate-800/60 dark:hover:bg-slate-300 hover:text-white dark:hover:text-slate-900',
         ]}
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -125,13 +128,13 @@ const icons: Record<string, string> = {
     ))}
 
     <!-- Calendario minimalista (mes actual, día de hoy resaltado) -->
-    <div class="mt-3 px-2 py-2.5 rounded-xl bg-slate-800/60 dark:bg-slate-800/60 border border-slate-800 dark:border-slate-700">
-      <p class="text-[11px] font-semibold text-slate-300 dark:text-slate-300 tracking-wide mb-1.5 px-1">
+    <div class="mt-3 px-2 py-2.5 rounded-xl bg-slate-800/60 dark:bg-white border border-slate-800 dark:border-slate-300">
+      <p class="text-[11px] font-semibold text-slate-300 dark:text-slate-600 tracking-wide mb-1.5 px-1">
         {nombreMes} {anioActual}
       </p>
       <div class="grid grid-cols-7 gap-y-0.5 text-center">
         {diasSemana.map((d) => (
-          <span class="text-[10px] text-slate-500 dark:text-slate-500">{d}</span>
+          <span class="text-[10px] text-slate-500 dark:text-slate-400">{d}</span>
         ))}
         {celdasCalendario.map((dia) => (
           dia === null ? (
@@ -141,8 +144,8 @@ const icons: Record<string, string> = {
               class:list={[
                 'text-[10px] w-5 h-5 rounded-full flex items-center justify-center mx-auto',
                 dia === diaHoy
-                  ? 'bg-cyan-400 dark:bg-cyan-500 text-slate-900 dark:text-slate-950 font-semibold'
-                  : 'text-slate-400 dark:text-slate-400',
+                  ? 'bg-cyan-400 dark:bg-cyan-600 text-slate-900 dark:text-white font-semibold'
+                  : 'text-slate-400 dark:text-slate-500',
               ]}
             >
               {dia}
@@ -154,20 +157,32 @@ const icons: Record<string, string> = {
   </nav>
 
   <!-- Usuario -->
-  <div class="px-3 py-4 border-t border-slate-800 shrink-0">
+  <div class="px-3 py-4 border-t border-slate-800 dark:border-slate-300 shrink-0">
+    <!-- Badges de rol -->
+    <div class="flex flex-wrap items-center gap-1.5 px-2 mb-2">
+      {isAdmin && (
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-400/20 dark:bg-cyan-100 text-cyan-300 dark:text-cyan-700">
+          Administrador
+        </span>
+      )}
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-700 dark:bg-white text-slate-300 dark:text-slate-600">
+        Técnico
+      </span>
+    </div>
+
     <div class="flex items-center gap-3 px-2 py-2">
-      <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-sm font-semibold text-white shrink-0">
+      <div class="w-9 h-9 rounded-full bg-slate-700 dark:bg-white flex items-center justify-center text-sm font-semibold text-white dark:text-slate-700 shrink-0">
         {iniciales}
       </div>
       <div class="min-w-0 flex-1">
-        <p class="text-sm font-medium text-white truncate">{userEmail ?? 'Sesión no identificada'}</p>
-        <p class="text-xs text-slate-500 truncate">Soporte Tecnico</p>
+        <p class="text-sm font-medium text-white dark:text-slate-900 truncate">{userEmail ?? 'Sesión no identificada'}</p>
+        <p class="text-xs text-cyan-300 dark:text-cyan-800 truncate">Agente de soporte</p>
       </div>
       <form method="POST" action="/api/session?_method=DELETE" data-logout-form>
         <button
           type="submit"
           aria-label="Cerrar sesión"
-          class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-800 hover:text-white transition-colors shrink-0"
+          class="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-800 dark:hover:bg-slate-300 hover:text-white dark:hover:text-slate-900 transition-colors shrink-0"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
@@ -175,31 +190,24 @@ const icons: Record<string, string> = {
         </button>
       </form>
     </div>
-    <p class="text-xs text-cyan-600">Bitacora de Actividades V2.5</p>
   </div>
 </aside>
 
 <script>
-  // El endpoint expone DELETE, pero un <form> HTML normal solo puede
-  // enviar GET/POST, así que interceptamos el submit y hacemos el
-  // fetch con el método correcto.
   document.querySelector('[data-logout-form]')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     await fetch('/api/session', { method: 'DELETE' });
     window.location.href = '/login';
   });
 
-  // Reloj en vivo con la hora de El Salvador, sin depender de la
-  // zona horaria del dispositivo de quien lo esté viendo.
+  // Reloj en vivo con la hora de El Salvador. Respeta el formato
+  // 12h/24h guardado en Configuración (localStorage + evento en
+  // vivo cuando se cambia desde esa página).
   const relojEl = document.getElementById('reloj-el-salvador');
 
-  function getFormatoHora() {
-    try {
-      const valor = localStorage.getItem('formatoHora');
-      return valor === '12h' ? '12h' : '24h';
-    } catch {
-      return '24h';
-    }
+  function getFormatoHora(): '12h' | '24h' {
+    const valor = localStorage.getItem('formatoHora');
+    return valor === '12h' ? '12h' : '24h';
   }
 
   function actualizarReloj() {
@@ -216,8 +224,8 @@ const icons: Record<string, string> = {
 
   actualizarReloj();
   setInterval(actualizarReloj, 1000);
+
+  // Si cambian el formato desde Configuración mientras el sidebar
+  // está visible, se actualiza al instante sin esperar al siguiente tick.
   window.addEventListener('formato-reloj-cambiado', actualizarReloj);
-  window.addEventListener('storage', (event) => {
-    if (event.key === 'formatoHora') actualizarReloj();
-  });
 </script>

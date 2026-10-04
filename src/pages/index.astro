@@ -161,24 +161,25 @@ const resumen = [
 </div>
 
     <!-- Grid de tickets -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-      {tickets.map((ticket) => (
-        <TicketCard
-          id={ticket.id}
-          numTicket={ticket.noticket}
-          tipoUsuario={ticket.tipoUsuario}
-          centroEducativo={ticket.ce}
-          codce={ticket.codce}
-          fecha={ticket.fecha}
-        />
-      ))}
-    </div>
+ <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  {tickets.map((ticket) => (
+    <TicketCard
+      key={ticket.id}
+      id={ticket.id}
+      numTicket={ticket.noticket}
+      tipoUsuario={ticket.tipoUsuario}
+      centroEducativo={ticket.ce}
+      codce={ticket.codce}
+      fecha={ticket.fecha}
+    />
+  ))}
+</div>
 
-    {tickets.length === 0 && !errorConexion && (
-      <div class="text-center py-16">
-        <p class="text-slate-500">No hay tickets registrados todavía.</p>
-      </div>
-    )}
+{tickets.length === 0 && !errorConexion && (
+  <div class="text-center py-16">
+    <p class="text-slate-500">No hay tickets registrados todavía.</p>
+  </div>
+)}
   </div>
 
   <div id="ayuda-tickets-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 px-4 py-6 items-center justify-center">

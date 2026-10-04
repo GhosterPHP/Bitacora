@@ -41,39 +41,46 @@ const exitoMessage = url.searchParams.get('exito');
       <!-- Mantenimiento del sistema (SOLO administradores) -->
 {isAdmin && (
   <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-    <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Mantenimiento del sistema</h2>
-    <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
-      Se ejecuta un ping automático a la base de datos cada 6 horas, todos los días, para evitar que Supabase
-      pause el proyecto por inactividad.
-    </p>
- 
-    <button
-      id="btn-ping-manual"
-      type="button"
-      class="mb-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-    >
-      Ejecutar ping ahora
-    </button>
- 
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+      <div>
+        <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">
+          Mantenimiento del sistema
+        </h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          Se ejecuta un ping automático a la base de datos cada 6 horas para evitar pausas por inactividad.
+        </p>
+      </div>
+    </div>
+
+    <!-- Acción manual -->
+    <div class="mb-4">
+      <button
+        id="btn-ping-manual"
+        type="button"
+        class="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+      >
+        Ejecutar ping ahora
+      </button>
+    </div>
+
+    <!-- Solo el ping más reciente evaluado directo desde historialPings -->
     <div class="border-t border-slate-100 dark:border-slate-800 pt-4">
-      <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">Últimos pings</p>
- 
+      <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Último ping registrado</p>
+
       {historialPings.length === 0 ? (
         <p class="text-sm text-slate-400 dark:text-slate-500">Todavía no hay pings registrados.</p>
       ) : (
-        <ul class="space-y-2">
-          {historialPings.map((log) => (
-            <li class="flex items-center justify-between text-xs">
-              <span class="text-slate-500 dark:text-slate-400">
-                {new Date(log.ejecutado_en).toLocaleString('es-SV', {
-                  dateStyle: 'short',
-                  timeStyle: 'short',
-                })}
-              </span>
-              <span class="text-slate-700 dark:text-slate-300">{log.mensaje}</span>
-            </li>
-          ))}
-        </ul>
+        <div class="flex items-center justify-between text-xs p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
+          <span class="text-slate-500 dark:text-slate-400">
+            {new Date(historialPings[0].ejecutado_en).toLocaleString('es-SV', {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            })}
+          </span>
+          <span class="font-medium text-slate-700 dark:text-slate-200">
+            {historialPings[0].mensaje}
+          </span>
+        </div>
       )}
     </div>
   </section>
@@ -146,36 +153,6 @@ const exitoMessage = url.searchParams.get('exito');
             class="absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
           ></span>
         </button>
-      </div>
-    </section>
-
-    <!-- Exportar datos -->
-    <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-      <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">Exportar datos</h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Descarga tus registros en formato CSV (se abre directo en Excel)</p>
-      <p class="text-xs text-yellow-500 dark:text-red-500 mb-4">(Aun en desarrollo parcialmente)</p>
-
-      <div class="flex flex-col sm:flex-row gap-3">
-        <a
-          href="/api/exportar/tickets"
-          download
-          class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-          </svg>
-          Exportar Tickets
-        </a>
-        <a
-          href="/api/exportar/rutas"
-          download
-          class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-          </svg>
-          Exportar Rutas
-        </a>
       </div>
     </section>
 
@@ -306,6 +283,23 @@ const exitoMessage = url.searchParams.get('exito');
     } catch (err) {
       console.error(err);
       await Swal.fire({ icon: 'error', title: 'No se pudo ejecutar el ping' });
+    }
+  });
+
+  // --- Verificación de estado del servidor ---
+  const btnCheck = document.getElementById('btn-check-status');
+  const statusText = document.getElementById('status-text');
+
+  btnCheck?.addEventListener('click', async () => {
+    if (!statusText) return;
+
+    statusText.textContent = 'Verificando...';
+
+    try {
+      const res = await fetch('/api/ping/ejecutar', { method: 'GET' });
+      statusText.textContent = res.ok ? 'Servidor Activo' : 'Inactivo';
+    } catch {
+      statusText.textContent = 'Desconocido';
     }
   });
 </script>

@@ -2,7 +2,7 @@
 export const prerender = false;
 
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import './src/styles/global.css'
+import '../styles/global.css';
 const { supabase, isAdmin } = Astro.locals;
 
 const { data, error } = await supabase

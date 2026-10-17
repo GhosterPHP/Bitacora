@@ -343,7 +343,9 @@ const errorMessage = url.searchParams.get('error');
     if (!file) return;
 
     try {
-      const text = await file.text();
+      const buffer = await file.arrayBuffer();
+      const decoder = new TextDecoder('iso-8859-1');
+      const text = decoder.decode(buffer);
       const rows = parseCSV(text);
       
       if (rows.length < 2) {

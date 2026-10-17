@@ -124,25 +124,66 @@ const fechaFormateada = new Date(fecha).toLocaleDateString('es-SV', {
 </article>
 
 <script>
+  import Swal from 'sweetalert2';
+
   document.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement;
 
+    // 1. Lógica de Eliminación
     const deleteBtn = target.closest('[data-delete-ticket]') as HTMLElement | null;
     if (deleteBtn) {
       const id = deleteBtn.dataset.deleteTicket;
-      const confirmado = confirm('¿Eliminar este ticket? Esta acción no se puede deshacer.');
-      if (!confirmado) return;
+      
+      const result = await Swal.fire({
+        title: '¿Eliminar este ticket?',
+        text: 'Esta acción no se puede deshacer.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#0891b2', // cyan-600
+        cancelButtonColor: '#64748b', // slate-500
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+      });
 
-      const res = await fetch(`/api/tickets/${id}`, { method: 'DELETE' });
+      if (!result.isConfirmed) return;
 
-      if (res.ok) {
-        deleteBtn.closest('article')?.remove();
-      } else {
-        alert('No se pudo eliminar el ticket.');
+      try {
+        const res = await fetch(`/api/tickets/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+
+        if (res.ok) {
+          // Remover la tarjeta con una pequeña transición visual
+          const articulo = deleteBtn.closest('article');
+          if (articulo) {
+            articulo.style.transition = 'opacity 0.3s ease';
+            articulo.style.opacity = '0';
+            setTimeout(() => articulo.remove(), 300);
+          }
+          
+          // Alerta de éxito con await
+          await Swal.fire({
+            title: '¡Eliminado!',
+            text: data.message || 'El ticket ha sido eliminado.',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+          });
+
+          // Recargar la página después de que se cierre la alerta
+          window.location.reload();
+
+        } else {
+          // Alerta de error del backend
+          Swal.fire('Error', data.error || 'No se pudo eliminar el ticket.', 'error');
+        }
+      } catch (error) {
+        Swal.fire('Error de red', 'Hubo un problema al conectar con el servidor.', 'error');
       }
+      
       return;
     }
 
+    // 2. Lógica de Navegación (Click en la tarjeta)
     if (target.closest('a, button')) return;
 
     const card = target.closest('[data-ticket-card]') as HTMLElement | null;

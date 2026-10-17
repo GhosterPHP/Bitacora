@@ -1,15 +1,10 @@
-// Cada vez que quieras anunciar novedades nuevas, cambia el ID
-// (para que se muestre de nuevo a todos aunque ya hayan leído
-// versiones anteriores) y actualiza el título/lista de cambios.
 export const AVISO_ACTUAL = {
-  id: 'bitacora-v2-5-2026-08',
-  titulo: 'Actualización Bitácora v2.5',
+  id: 'bitacora-v3-0-2026-10', // Cambiamos el ID para forzar que todos lo vean
+  titulo: 'Actualización Bitácora v3.0 - Carga Masiva y Mejoras Visuales',
   cambios: [
-    'Mejora visual en las tarjetas de tickets: más compactas, más legibles y con iconos por tipo de usuario.',
-    'Nuevo formato de reloj configurable en Configuración: cambia entre 24 horas y 12 horas.',
-    'Modo oscuro y ajustes de apariencia más claros y consistentes en toda la app.',
-    'Se corrigió la fecha de rutas para respetar el valor real de la columna fecha y evitar desfases por zona horaria.',
-    'Formularios actualizados para permitir ingresar la fecha manualmente en nuevas rutas.',
-    'Se mejoró la experiencia de los centros y reportes con datos más consistentes y visibles.',
+    '🚀 ¡Nueva función de Carga Masiva! Ahora puedes importar múltiples tickets a la vez subiendo un archivo CSV.',
+    '📊 Vista previa inteligente: Valida los datos, detecta errores y visualiza estadísticas antes de importar tu CSV.',
+    '✨ Alertas visuales renovadas: Las notificaciones de eliminación y error ahora son mucho más modernas e intuitivas.',
+    '⚙️ Optimización interna: Mejoramos el guardado en segundo plano para no saturar el servidor al subir muchos registros.'
   ],
 };

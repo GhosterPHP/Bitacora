@@ -9,7 +9,7 @@ const errorMessage = url.searchParams.get('error');
 ---
 
 <DashboardLayout title="Nuevo ticket">
-  <div class="max-w-xl mx-auto">
+  <div class="max-w-2xl mx-auto pb-10">
     <div class="mb-6">
       <a href="/" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors mb-3">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -17,110 +17,523 @@ const errorMessage = url.searchParams.get('error');
         </svg>
         Volver a tickets
       </a>
-      <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Nuevo ticket</h1>
-      <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Registra un nuevo ticket en el sistema</p>
-    </div>
-
-    <form method="POST" action="/api/tickets" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-5">
-      <div>
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" for="noticket">
-          Número de ticket
-        </label>
-        <input
-          id="noticket"
-          name="noticket"
-          type="text"
-          required
-          inputmode="numeric"
-          placeholder="#25523"
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
-        />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" for="tipoUsuario">
-          Tipo de usuario
-        </label>
-        <select
-          id="tipoUsuario"
-          name="tipoUsuario"
-          required
-          class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
-        >
-          <option value="Estudiante">Estudiante</option>
-          <option value="Docente">Docente</option>
-        </select>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
+      <div class="flex items-center justify-between">
         <div>
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" for="codce">
-            Código de centro
-          </label>
-          <input
-            id="codce"
-            name="codce"
-            type="number"
-            required
-            placeholder="10345"
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
-          />
+          <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Nuevo ticket</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Selecciona el método de registro</p>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" for="ce">
-            Nombre del centro
-          </label>
-          <input
-            id="ce"
-            name="ce"
-            type="text"
-            required
-            placeholder="Centro Escolar..."
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900"
-          />
-        </div>
-      </div>
-
-      {errorMessage && (
-        <div class="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-400">
-          {errorMessage}
-        </div>
-      )}
-
-      <div class="flex gap-3 pt-2">
-        <a
-          href="/"
-          class="flex-1 text-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-        >
-          Cancelar
-        </a>
-        <button
-          type="submit"
-          class="flex-1 rounded-xl bg-slate-900 dark:bg-cyan-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-slate-800 dark:hover:bg-cyan-500 transition"
-        >
-          Crear ticket
+        
+        <button id="btnHelp" class="inline-flex items-center gap-2 text-sm font-medium text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors bg-cyan-50 dark:bg-cyan-950/30 px-3 py-1.5 rounded-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+          </svg>
+          ¿Cómo funciona?
         </button>
       </div>
-    </form>
+    </div>
+
+    <!-- Selector de Modo -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <button id="tabManual" class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        <span class="font-medium text-sm">Creación Manual</span>
+      </button>
+
+      <button id="tabCsv" class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+        </svg>
+        <span class="font-medium text-sm">Carga Masiva (CSV)</span>
+      </button>
+    </div>
+
+    {errorMessage && (
+      <div class="mb-6 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+        {errorMessage}
+      </div>
+    )}
+
+    <!-- VISTA MANUAL -->
+    <div id="viewManual" class="block">
+      <!-- (El formulario manual se mantiene exactamente igual) -->
+      <form method="POST" action="/api/tickets" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 shadow-sm">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" for="noticket">Número de ticket</label>
+          <input id="noticket" name="noticket" type="text" required inputmode="numeric" placeholder="#25523" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" for="tipoUsuario">Tipo de usuario</label>
+          <select id="tipoUsuario" name="tipoUsuario" required class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900">
+            <option value="Estudiante">Estudiante</option>
+            <option value="Docente">Docente</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" for="codce">Código de centro</label>
+            <input id="codce" name="codce" type="number" required placeholder="10345" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2" for="ce">Nombre del centro</label>
+            <input id="ce" name="ce" type="text" required placeholder="Centro Escolar..." class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900" />
+          </div>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <a href="/" class="flex-1 text-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition">Cancelar</a>
+          <button type="submit" class="flex-1 rounded-xl bg-slate-900 dark:bg-cyan-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-slate-800 dark:hover:bg-cyan-500 transition">Crear ticket</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- VISTA CSV -->
+    <div id="viewCsv" class="hidden">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+        
+        <div class="mb-6 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 p-4">
+          <div class="flex gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-amber-600 dark:text-amber-500 shrink-0">
+              <path fill-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clip-rule="evenodd" />
+            </svg>
+            <div>
+              <h3 class="text-sm font-bold text-amber-800 dark:text-amber-400">¡Importante antes de subir!</h3>
+              <p class="text-sm text-amber-700 dark:text-amber-300/80 mt-1 mb-3">Para que la carga masiva funcione correctamente, asegúrate de utilizar el formato oficial.</p>
+              <a href="/plantillas/plantilla_tickets.csv" download="plantilla_tickets.csv" class="inline-flex items-center gap-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 px-3 py-2 text-sm font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                Descargar Plantilla CSV
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 p-8 text-center transition-colors hover:border-cyan-400 dark:hover:border-cyan-600 group">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto text-slate-400 dark:text-slate-500 mb-3 group-hover:text-cyan-500 transition-colors">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+          <label for="fileCsv" class="cursor-pointer">
+            <span class="text-sm font-medium text-cyan-600 dark:text-cyan-400 hover:underline">Selecciona un archivo CSV</span>
+            <span class="text-sm text-slate-500 dark:text-slate-400"> o arrástralo aquí</span>
+            <input id="fileCsv" type="file" accept=".csv" class="hidden" />
+          </label>
+          <p class="text-xs text-slate-400 mt-2" id="fileNameDisplay">Ningún archivo seleccionado</p>
+        </div>
+
+        <div class="flex gap-3 pt-6">
+          <a href="/" class="flex-1 text-center rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition">Cancelar</a>
+          <button id="btnAnalizar" disabled class="flex-1 rounded-xl bg-slate-900 dark:bg-cyan-600 text-white text-sm font-medium px-4 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 dark:hover:bg-cyan-500 transition">
+            Analizar CSV
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- MODAL DE AYUDA (Nativo) -->
+  <dialog id="modalAyuda" class="bg-transparent p-0 m-auto backdrop:bg-slate-900/50 backdrop:backdrop-blur-sm open:animate-in open:fade-in-0">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 max-w-lg w-full shadow-xl">
+      <div class="flex justify-between items-start mb-4">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">¿Cómo funciona la carga masiva?</h2>
+        <button id="btnCloseHelp" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div class="space-y-4 text-sm text-slate-600 dark:text-slate-300">
+        <p>
+          La carga masiva te permite importar múltiples tickets a la vez copiando los registros de tu bitácora de Excel directamente a nuestra <strong>Plantilla CSV</strong>.
+        </p>
+        <ul class="list-disc pl-5 space-y-2">
+          <li><strong>Paso 1:</strong> Descarga la plantilla CSV provista en el botón naranja.</li>
+          <li><strong>Paso 2:</strong> Pega los registros de tu bitácora. El sistema buscará específicamente las columnas: <code>TICKET</code>, <code>USUARIO</code> y <code>CENTRO EDUCATIVO</code>. (No importa si pegas otras columnas por accidente).</li>
+          <li><strong>Paso 3:</strong> Sube el archivo. El sistema analizará los datos, detectará si hay tickets <strong>"N/A"</strong> (Sin Ticket) y te mostrará un resumen de lo que se va a subir.</li>
+          <li><strong>Paso 4:</strong> Revisa y confirma. Los tickets se irán subiendo uno por uno automáticamente de forma segura.</li>
+        </ul>
+      </div>
+      <div class="mt-6">
+        <button id="btnUnderstand" class="w-full rounded-xl bg-slate-900 dark:bg-cyan-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-slate-800 dark:hover:bg-cyan-500 transition">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- MODAL DE PREVISUALIZACIÓN (NUEVO) -->
+  <dialog id="modalPreview" class="bg-transparent p-0 m-auto backdrop:bg-slate-900/50 backdrop:backdrop-blur-sm open:animate-in open:fade-in-0 w-[95vw] max-w-5xl">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col max-h-[90vh]">
+      
+      <!-- Header -->
+      <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Resumen de Importación</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Revisa los datos antes de enviarlos a la base de datos.</p>
+        </div>
+        <button id="btnClosePreview" class="text-slate-400 hover:text-slate-600 bg-slate-100 dark:bg-slate-800 p-2 rounded-full">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+
+      <!-- Cuerpo (Estadísticas y Tabla) -->
+      <div class="p-6 overflow-y-auto space-y-6">
+        
+        <!-- Tarjetas de Estadísticas -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+  <!-- Total Tickets -->
+  <div class="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800/50 rounded-xl p-4 flex flex-col justify-between">
+    <div class="flex items-center gap-2 mb-2">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-cyan-600 dark:text-cyan-400">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+      </svg>
+      <span class="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">Total Tickets</span>
+    </div>
+    <span id="statTotal" class="text-2xl font-bold text-slate-900 dark:text-slate-100">0</span>
+  </div>
+
+  <!-- Nuevos Estudiantes -->
+  <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 rounded-xl p-4 flex flex-col justify-between">
+    <div class="flex items-center gap-2 mb-2">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-emerald-600 dark:text-emerald-400">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+      </svg>
+      <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Estudiantes</span>
+    </div>
+    <span id="statEstudiantes" class="text-2xl font-bold text-slate-900 dark:text-slate-100">0</span>
+  </div>
+
+  <!-- Nuevos Docentes -->
+  <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-4 flex flex-col justify-between">
+    <div class="flex items-center gap-2 mb-2">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-blue-600 dark:text-blue-400">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
+      </svg>
+      <span class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Docentes</span>
+    </div>
+    <span id="statDocentes" class="text-2xl font-bold text-slate-900 dark:text-slate-100">0</span>
+  </div>
+
+  <!-- Centros Involucrados -->
+  <div class="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/50 rounded-xl p-4 flex flex-col justify-between">
+    <div class="flex items-center gap-2 mb-2">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-purple-600 dark:text-purple-400">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+      </svg>
+      <span class="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Centros</span>
+    </div>
+    <span id="statCentros" class="text-2xl font-bold text-slate-900 dark:text-slate-100">0</span>
+  </div>
+</div>
+
+        <!-- Tabla de Datos -->
+        <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
+              <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200 text-xs uppercase">
+                <tr>
+                  <th class="px-4 py-3 font-medium">Ticket</th>
+                  <th class="px-4 py-3 font-medium">Usuario</th>
+                  <th class="px-4 py-3 font-medium">Cod. CE</th>
+                  <th class="px-4 py-3 font-medium">Nombre CE</th>
+                  <th class="px-4 py-3 font-medium text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody id="tablaPreviewBody" class="divide-y divide-slate-200 dark:divide-slate-700/50">
+                <!-- Las filas se inyectan aquí con JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex gap-3 rounded-b-2xl">
+        <button id="btnCancelPreview" class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium px-4 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+          Cancelar Importación
+        </button>
+        <button id="btnConfirmImport" class="flex-1 rounded-xl bg-cyan-600 dark:bg-cyan-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-cyan-700 dark:hover:bg-cyan-500 transition shadow-sm">
+          Confirmar e Importar (Próximamente)
+        </button>
+      </div>
+    </div>
+  </dialog>
 </DashboardLayout>
 
 <script>
-  const inputNumero = document.getElementById('noticket') as HTMLInputElement | null;
+  // ==========================================
+  // LÓGICA DE PESTAÑAS Y ARCHIVOS (Ya existente)
+  // ==========================================
+  const tabManual = document.getElementById('tabManual');
+  const tabCsv = document.getElementById('tabCsv');
+  const viewManual = document.getElementById('viewManual');
+  const viewCsv = document.getElementById('viewCsv');
 
+  function switchTab(isManual: boolean) {
+    if (isManual) {
+      viewManual?.classList.remove('hidden'); viewCsv?.classList.add('hidden');
+      tabManual?.classList.add('border-cyan-500', 'bg-cyan-50', 'dark:bg-cyan-900/20', 'text-cyan-700', 'dark:text-cyan-300');
+      tabManual?.classList.remove('border-slate-200', 'dark:border-slate-800', 'bg-white', 'dark:bg-slate-900', 'text-slate-500', 'dark:text-slate-400');
+      tabCsv?.classList.add('border-slate-200', 'dark:border-slate-800', 'bg-white', 'dark:bg-slate-900', 'text-slate-500', 'dark:text-slate-400');
+      tabCsv?.classList.remove('border-cyan-500', 'bg-cyan-50', 'dark:bg-cyan-900/20', 'text-cyan-700', 'dark:text-cyan-300');
+    } else {
+      viewManual?.classList.add('hidden'); viewCsv?.classList.remove('hidden');
+      tabCsv?.classList.add('border-cyan-500', 'bg-cyan-50', 'dark:bg-cyan-900/20', 'text-cyan-700', 'dark:text-cyan-300');
+      tabCsv?.classList.remove('border-slate-200', 'dark:border-slate-800', 'bg-white', 'dark:bg-slate-900', 'text-slate-500', 'dark:text-slate-400');
+      tabManual?.classList.add('border-slate-200', 'dark:border-slate-800', 'bg-white', 'dark:bg-slate-900', 'text-slate-500', 'dark:text-slate-400');
+      tabManual?.classList.remove('border-cyan-500', 'bg-cyan-50', 'dark:bg-cyan-900/20', 'text-cyan-700', 'dark:text-cyan-300');
+    }
+  }
+
+  tabManual?.addEventListener('click', () => switchTab(true));
+  tabCsv?.addEventListener('click', () => switchTab(false));
+
+  const fileCsv = document.getElementById('fileCsv') as HTMLInputElement;
+  const fileNameDisplay = document.getElementById('fileNameDisplay');
+  const btnAnalizar = document.getElementById('btnAnalizar') as HTMLButtonElement;
+
+  fileCsv?.addEventListener('change', (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) {
+      fileNameDisplay!.textContent = file.name;
+      btnAnalizar.disabled = false;
+      fileNameDisplay!.classList.add('text-cyan-600', 'dark:text-cyan-400');
+    }
+  });
+
+  // Modales
+  const modalAyuda = document.getElementById('modalAyuda') as HTMLDialogElement;
+  document.getElementById('btnHelp')?.addEventListener('click', () => modalAyuda.showModal());
+  document.getElementById('btnCloseHelp')?.addEventListener('click', () => modalAyuda.close());
+  document.getElementById('btnUnderstand')?.addEventListener('click', () => modalAyuda.close());
+
+  const modalPreview = document.getElementById('modalPreview') as HTMLDialogElement;
+  document.getElementById('btnClosePreview')?.addEventListener('click', () => modalPreview.close());
+  document.getElementById('btnCancelPreview')?.addEventListener('click', () => modalPreview.close());
+
+  // ==========================================
+  // LÓGICA DE ANÁLISIS CSV
+  // ==========================================
+  
+  // Función sencilla para convertir CSV a Array bidimensional
+  function parseCSV(text: string) {
+    let p = '', row = [''], ret = [row], i = 0, r = 0, s = !0, l;
+    for (l of text) {
+      if ('"' === l) {
+        if (s && l === p) row[i] += l;
+        s = !s;
+      } else if (',' === l && s) l = row[++i] = '';
+      else if ('\n' === l && s) {
+        if ('\r' === p) row[i] = row[i].slice(0, -1);
+        row = ret[++r] = [l = '']; i = 0;
+      } else row[i] += l;
+      p = l;
+    }
+    return ret;
+  }
+
+  // Formateador de ticket (reutilizado)
   const formatearNumeroTicket = (valor: string) => {
-    const limpio = valor
-      .replace(/[^\d]/g, '')
-      .replace(/^0+/, '');
-
+    const limpio = valor.replace(/[^\d]/g, '').replace(/^0+/, '');
     return limpio ? `#${limpio}` : '';
   };
 
-  inputNumero?.addEventListener('input', () => {
-    const valor = inputNumero.value;
-    const formateado = formatearNumeroTicket(valor);
-    if (valor !== formateado) {
-      inputNumero.value = formateado;
+  // 🔴 VARIABLE GLOBAL PARA ALMACENAR TICKETS A IMPORTAR
+  let ticketsAImportar: any[] = [];
+
+  btnAnalizar.addEventListener('click', async () => {
+    const file = fileCsv.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const rows = parseCSV(text);
+      
+      if (rows.length < 2) {
+        alert("El archivo parece estar vacío o no tiene el formato correcto.");
+        return;
+      }
+
+      // 1. Buscar Índices de las Columnas Clave
+      const headers = rows[0].map(h => h.trim().toUpperCase());
+      const idxTicket = headers.indexOf("TICKET");
+      const idxUsuario = headers.indexOf("USUARIO");
+      const idxCE = headers.indexOf("CENTRO EDUCATIVO");
+
+      if (idxTicket === -1 || idxUsuario === -1 || idxCE === -1) {
+        alert("Faltan columnas requeridas. Asegúrate de que existan 'TICKET', 'USUARIO' y 'CENTRO EDUCATIVO'.");
+        return;
+      }
+
+      // 2. Procesar Datos y Calcular Estadísticas
+      let totalTickets = 0;
+      let countEstudiantes = 0;
+      let countDocentes = 0;
+      const centrosUnicos = new Set();
+      
+      const tbody = document.getElementById('tablaPreviewBody');
+      if (!tbody) return;
+      tbody.innerHTML = ''; // Limpiar tabla
+      ticketsAImportar = []; // 🔴 Limpiamos la cola anterior
+
+      // Recorrer desde la fila 1 (saltando cabeceras)
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        
+        // Ignorar filas vacías al final del archivo
+        if (!row[idxTicket] && !row[idxUsuario] && !row[idxCE]) continue;
+
+        let rawTicket = (row[idxTicket] || '').trim();
+        let rawUsuario = (row[idxUsuario] || '').trim().toUpperCase();
+        let rawCE = (row[idxCE] || '').trim();
+
+        // Limpieza: Ticket
+        let finalTicket = rawTicket === 'N/A' ? '(Sin Ticket)' : formatearNumeroTicket(rawTicket);
+        
+        // Limpieza: Usuario
+        let finalUsuario = rawUsuario === 'ESTUDIANTE' ? 'Estudiante' : (rawUsuario === 'DOCENTE' ? 'Docente' : 'Inválido');
+
+        // Limpieza: Centro Educativo (Separar 13364 - Nombre)
+        let codCE = '???';
+        let nomCE = rawCE;
+        const ceMatch = rawCE.match(/^(\d+)\s*-\s*(.+)$/);
+        if (ceMatch) {
+          codCE = ceMatch[1];
+          nomCE = ceMatch[2];
+        }
+
+        // Lógica de validación visual básica
+        const esValido = finalTicket !== '' && finalUsuario !== 'Inválido' && codCE !== '???';
+
+        // Contadores
+        totalTickets++;
+        if (finalUsuario === 'Estudiante') countEstudiantes++;
+        if (finalUsuario === 'Docente') countDocentes++;
+        if (codCE !== '???') centrosUnicos.add(codCE);
+
+        const filaId = `fila-${i}`; // ID único para interactuar después
+
+        // 🔴 GUARDAR TICKET VÁLIDO EN LA COLA
+        if (esValido) {
+          ticketsAImportar.push({
+            noticket: finalTicket,
+            tipoUsuario: finalUsuario,
+            codce: Number(codCE),
+            ce: nomCE,
+            filaId: filaId
+          });
+        }
+
+        // Crear Fila en la Tabla
+        const tr = document.createElement('tr');
+        tr.id = filaId; // Le asignamos el ID al DOM
+        tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors';
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-medium ${finalTicket === '(Sin Ticket)' ? 'text-slate-400' : 'text-slate-900 dark:text-slate-100'}">${finalTicket || '<span class="text-red-500">Vacío</span>'}</td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${finalUsuario === 'Estudiante' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : finalUsuario === 'Docente' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}">
+              ${finalUsuario}
+            </span>
+          </td>
+          <td class="px-4 py-3 ${codCE === '???' ? 'text-red-500' : ''}">${codCE}</td>
+          <td class="px-4 py-3 truncate max-w-[200px]" title="${nomCE}">${nomCE || '<span class="text-red-500">Sin Asignar</span>'}</td>
+          <td class="px-4 py-3 text-center" data-estado="true">
+            ${esValido 
+              ? `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` 
+              : `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" title="Revisa los datos en rojo"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></span>`
+            }
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // 3. Actualizar Tarjetas de Estadísticas
+      document.getElementById('statTotal')!.textContent = totalTickets.toString();
+      document.getElementById('statEstudiantes')!.textContent = countEstudiantes > 0 ? `+${countEstudiantes}` : '0';
+      document.getElementById('statDocentes')!.textContent = countDocentes > 0 ? `+${countDocentes}` : '0';
+      document.getElementById('statCentros')!.textContent = centrosUnicos.size.toString();
+
+      // 4. Mostrar el Modal
+      modalPreview.showModal();
+
+    } catch (err) {
+      console.error(err);
+      alert("Hubo un error al leer el archivo. Asegúrate de que sea un CSV válido.");
     }
+  });
+
+  // ==========================================
+  // 🔴 LÓGICA DE ENVÍO SECUENCIAL (Uno por Uno)
+  // ==========================================
+  const btnConfirmImport = document.getElementById('btnConfirmImport') as HTMLButtonElement;
+  const btnCancelPreview = document.getElementById('btnCancelPreview') as HTMLButtonElement;
+  const btnClosePreview = document.getElementById('btnClosePreview') as HTMLButtonElement;
+
+  btnConfirmImport?.addEventListener('click', async () => {
+    if (ticketsAImportar.length === 0) return;
+
+    // Desactivar botones mientras se carga para evitar dobles clics
+    btnConfirmImport.disabled = true;
+    btnCancelPreview.disabled = true;
+    btnClosePreview.disabled = true;
+    btnConfirmImport.innerHTML = `
+      <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Importando...
+    `;
+
+    let exitosos = 0;
+
+    // Iteramos de manera asíncrona sobre cada ticket (evitando saturar la red/DB)
+    for (const ticket of ticketsAImportar) {
+      const filaElemento = document.getElementById(ticket.filaId);
+      if (!filaElemento) continue;
+      
+      const celdaEstado = filaElemento.querySelector('[data-estado="true"]');
+      if (!celdaEstado) continue;
+
+      // Actualizar UI: Spinner en la fila actual
+      celdaEstado.innerHTML = `<span class="animate-spin text-cyan-500 w-5 h-5 flex items-center justify-center mx-auto"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg></span>`;
+
+      try {
+        // Enviar ticket al endpoint dedicado a cargas masivas
+        const respuesta = await fetch('/api/tickets/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            noticket: ticket.noticket,
+            tipoUsuario: ticket.tipoUsuario,
+            codce: ticket.codce,
+            ce: ticket.ce
+          })
+        });
+
+        const data = await respuesta.json();
+
+        // Actualizar UI: Éxito o Falla según la API
+        if (respuesta.ok) {
+          exitosos++;
+          celdaEstado.innerHTML = `<span class="text-emerald-500 text-sm font-bold flex justify-center items-center gap-1"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Listo</span>`;
+          filaElemento.classList.add('bg-emerald-50/50', 'dark:bg-emerald-900/10');
+        } else {
+          const mensajeError = data.error === 'Duplicado' ? 'Duplicado' : 'Error';
+          celdaEstado.innerHTML = `<span class="text-amber-500 text-sm font-bold flex justify-center items-center gap-1" title="${data.error || 'Fallo al insertar'}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg> ${mensajeError}</span>`;
+          filaElemento.classList.add('bg-amber-50/50', 'dark:bg-amber-900/10');
+        }
+      } catch (error) {
+        celdaEstado.innerHTML = `<span class="text-red-500 text-sm font-bold flex justify-center items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg> Red</span>`;
+      }
+
+      // Pausa artificial corta (150ms) entre peticiones para efecto visual y protección a Supabase
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+
+    // Proceso terminado, restaurar botones y redirigir
+    btnConfirmImport.innerHTML = `Completado (${exitosos}/${ticketsAImportar.length})`;
+    btnCancelPreview.textContent = "Cerrar";
+    btnCancelPreview.disabled = false;
+    btnClosePreview.disabled = false;
+    
+    // Redirección con una espera de 2 segundos para que el usuario pueda ver el resultado final
+    setTimeout(() => { window.location.href = '/'; }, 2000);
   });
 </script>

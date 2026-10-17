@@ -3,6 +3,17 @@ interface Props {
   userEmail?: string | null;
   isAdmin?: boolean;
 }
+const decoracionesPorMes: Record<string, string> = {
+  'Enero': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Snowflake.png', // Copo de nieve
+  'Octubre': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Jack-O-Lantern.png', // Calabaza de Halloween
+  'Diciembre': 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Christmas%20Tree.png', // Árbol de Navidad
+};
+const estilosPorMes: Record<string, string> = {
+  'Enero': 'bg-gradient-to-br from-blue-200 to-cyan-100 border-blue-300 dark:from-blue-800/80 dark:to-cyan-800/60 dark:border-blue-600/50 text-blue-950 dark:text-cyan-50',
+  'Octubre': 'bg-gradient-to-br from-orange-200 to-amber-200 border-orange-400 dark:from-orange-800/80 dark:to-amber-700/60 dark:border-orange-500/50 text-orange-950 dark:text-orange-50',
+  'Diciembre': 'bg-gradient-to-br from-red-200 to-emerald-100 border-red-300 dark:from-red-900/80 dark:to-emerald-800/60 dark:border-red-700/50 text-slate-900 dark:text-emerald-50',
+};
+
 
 const { userEmail = null, isAdmin = false } = Astro.props;
 
@@ -53,7 +64,12 @@ const celdasCalendario: (number | null)[] = [
   ...Array(primerDiaSemana).fill(null),
   ...Array.from({ length: diasEnMes }, (_, i) => i + 1),
 ];
+const decoracionImg = decoracionesPorMes[nombreMes];
+// Verificamos si el mes actual es uno de los 3 especiales
+const esMesEspecial = !!estilosPorMes[nombreMes];
 
+// Si es especial, usamos el degradado. Si es normal, usamos tus colores originales.
+const degradadoActual = estilosPorMes[nombreMes] || 'bg-slate-800/60 dark:bg-white border-slate-800 dark:border-slate-300';
 // Ajusta los href a las rutas reales conforme las vayas creando
 const menuItems = [
   { label: 'Tickets', href: '/', icon: 'ticket' },
@@ -87,28 +103,46 @@ const icons: Record<string, string> = {
   id="sidebar"
   class="fixed lg:sticky top-0 left-0 z-40 h-screen w-64 shrink-0 -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out bg-slate-900 dark:bg-slate-200 text-slate-300 dark:text-slate-600 flex flex-col"
 >
-  <!-- Marca -->
-  <div class="flex items-center gap-2.5 px-5 h-16 border-b border-slate-800 dark:border-slate-300 shrink-0">
-    <div class="w-8 h-8 rounded-lg bg-cyan-400 dark:bg-cyan-600 flex items-center justify-center">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" d={icons.ticket} />
-      </svg>
-    </div>
-    <span class="text-white dark:text-slate-900 font-semibold tracking-tight">Bitácora</span>
+ <!-- Marca -->
+  <div class="flex items-center gap-2.5 px-4 h-16 border-b border-slate-800 dark:border-slate-300 shrink-0">
+    <a href="/" class="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded-lg p-1 transition-all" aria-label="Ir a inicio">
+      <img 
+        src="/chirrete.png" 
+        alt="Bitácora Chirrete Logo" 
+        class="h-14 w-full object-contain select-none dark:brightness-95 transition-all"
+        draggable="false"
+      />
+    </a>
   </div>
 
-  <!-- Reloj (hora de El Salvador) -->
-  <div class="flex items-center gap-2 px-5 py-3 border-b border-slate-800 dark:border-slate-300 shrink-0">
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+<!-- Reloj (hora de El Salvador) -->
+<div class="flex items-center gap-3.5 px-5 py-4 border-b border-slate-800/80 dark:border-slate-200/80 shrink-0 group cursor-default">
+  
+  <!-- Contenedor del Icono -->
+  <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800/60 dark:bg-slate-100 border border-slate-700/50 dark:border-slate-300 shadow-sm shrink-0 transition-transform duration-300 group-hover:scale-105">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-cyan-400 dark:text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
-    <div class="leading-tight">
-      <span id="reloj-el-salvador" class="font-mono-ticket text-sm text-white dark:text-slate-900 tracking-wide tabular-nums">
-        {horaInicial}
-      </span>
-      <p class="text-[10px] text-slate-500 dark:text-slate-400">Hora de El Salvador</p>
-    </div>
+    
+    <!-- Indicador "En vivo" (Punto verde que palpita) -->
+    <span class="absolute -top-1 -right-1 flex h-3 w-3">
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+      <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-slate-900 dark:border-white"></span>
+    </span>
   </div>
+
+  <!-- Contenedor de Texto -->
+  <div class="flex flex-col justify-center">
+    <!-- Fuente minimalista: font-sans y font-light -->
+    <span id="reloj-el-salvador" class="font-sans text-[17px] font-light text-white dark:text-slate-800 tracking-wider tabular-nums leading-none mb-1.5">
+      {horaInicial}
+    </span>
+    <span class="text-[9px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-widest leading-none">
+      Hora de El Salvador
+    </span>
+  </div>
+
+</div>
 
   <!-- Navegación -->
   <nav class="flex-1 min-h-0 overflow-y-auto sin-scrollbar px-3 py-3 space-y-1">
@@ -129,25 +163,57 @@ const icons: Record<string, string> = {
       </a>
     ))}
 
-    <!-- Calendario minimalista (mes actual, día de hoy resaltado) -->
-    <div class="mt-3 px-2 py-2.5 rounded-xl bg-slate-800/60 dark:bg-white border border-slate-800 dark:border-slate-300">
-      <p class="text-[11px] font-semibold text-slate-300 dark:text-slate-600 tracking-wide mb-1.5 px-1">
-        {nombreMes} {anioActual}
-      </p>
+  <!-- Calendario minimalista (Easter eggs en Oct, Dic, Ene / Normal el resto del año) -->
+    <div class:list={["mt-3 px-2 py-2.5 rounded-xl border", degradadoActual]}>
+      
+      <!-- Cabecera -->
+      <div class="flex items-center justify-between mb-1.5 px-1">
+        <p class:list={[
+          "text-[11px] font-semibold tracking-wide",
+          esMesEspecial ? "opacity-90" : "text-slate-300 dark:text-slate-600"
+        ]}>
+          {nombreMes} {anioActual}
+        </p>
+        
+        {decoracionImg && (
+          <img 
+            src={decoracionImg} 
+            alt={`Decoración de ${nombreMes}`} 
+            title={`Decoración de ${nombreMes}`}
+            class="w-6 h-6 object-contain select-none"
+            draggable="false"
+          />
+        )}
+      </div>
+
       <div class="grid grid-cols-7 gap-y-0.5 text-center">
+        <!-- Letras de los días -->
         {diasSemana.map((d) => (
-          <span class="text-[10px] text-slate-500 dark:text-slate-400">{d}</span>
+          <span class:list={[
+            "text-[10px]",
+            esMesEspecial ? "opacity-60 font-medium" : "text-slate-500 dark:text-slate-400"
+          ]}>
+            {d}
+          </span>
         ))}
+        
+        <!-- Números de los días -->
         {celdasCalendario.map((dia) => (
           dia === null ? (
             <span></span>
           ) : (
             <span
               class:list={[
-                'text-[10px] w-5 h-5 rounded-full flex items-center justify-center mx-auto',
+                'text-[10px] w-5 h-5 rounded-full flex items-center justify-center mx-auto transition-colors',
                 dia === diaHoy
-                  ? 'bg-cyan-400 dark:bg-cyan-600 text-slate-900 dark:text-white font-semibold'
-                  : 'text-slate-400 dark:text-slate-500',
+                  // Estilo para el DÍA ACTUAL
+                  ? (esMesEspecial 
+                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm font-bold' 
+                      : 'bg-cyan-400 dark:bg-cyan-600 text-slate-900 dark:text-white font-semibold')
+                  // Estilo para los DEMÁS DÍAS
+                  : (esMesEspecial 
+                      ? 'opacity-80 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10' 
+                      : 'text-slate-400 dark:text-slate-500')
               ]}
             >
               {dia}

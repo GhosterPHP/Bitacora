@@ -26,41 +26,77 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: 'Tipo de usuario inválido.' }), { status: 400 });
     }
 
-    // 3. Lógica de Centros Educativos (Evitar duplicados)
-    // Verificamos si el código del centro ya existe en el directorio
-    const { data: ceExistente } = await supabase
+    // 3. Lógica de Centros Educativos (Anti-Condición de Carrera)
+    // Usa upsert + ignoreDuplicates: Intenta insertar, si el código ya existe, 
+    // ignora la inserción silenciosamente sin arrojar error.
+   await supabase
       .from('centroseducativos')
-      .select('id')
+      .upsert(
+        { cod: codce, nombre: ce },
+        { onConflict: 'cod', ignoreDuplicates: true }
+      );
+
+    // 🔥 NUEVO: Ahora le pedimos a la BD el nombre oficial que tiene registrado
+    const { data: ceOficial } = await supabase
+      .from('centroseducativos')
+      .select('nombre')
       .eq('cod', codce)
-      .maybeSingle();
+      .single();
 
-    if (!ceExistente) {
-      // Si el centro no existe, lo registramos en la tabla centroseducativos
-      await supabase
-        .from('centroseducativos')
-        .insert({ cod: codce, nombre: ce });
+    // Si encontró el nombre oficial en la BD lo usamos. Si por alguna extraña razón falla, usamos el del CSV.
+    const nombreFinalCE = ceOficial ? ceOficial.nombre : ce;
+
+// 4. Insertar el Ticket en la tabla tickets
+    
+    let valorTicketDB = noticket;
+    
+    if (noticket === '(Sin Ticket)') {
+      // A) Buscamos en la base de datos el último ticket que empiece con "N/A-"
+      // Al ordenarlo de forma descendente, el más alto (ej. N/A-015) quedará de primero.
+      const { data: ultimoTicket } = await supabase
+        .from('tickets')
+        .select('noticket')
+        .like('noticket', 'N/A-%')
+        .order('noticket', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let siguienteNumero = 1;
+
+      // B) Si ya existe un ticket anterior, le extraemos el número y le sumamos 1
+      if (ultimoTicket && ultimoTicket.noticket) {
+        // Separa "N/A" de "015"
+        const partes = ultimoTicket.noticket.split('-'); 
+        if (partes.length === 2) {
+          const numeroActual = parseInt(partes[1], 10);
+          if (!isNaN(numeroActual)) {
+            siguienteNumero = numeroActual + 1;
+          }
+        }
+      }
+
+      // C) Formateamos el nuevo número con ceros a la izquierda (ej. 001, 002... 016)
+      // padStart(3, '0') asegura que siempre tenga al menos 3 dígitos
+      const numeroFormateado = siguienteNumero.toString().padStart(3, '0');
+      valorTicketDB = `N/A-${numeroFormateado}`;
     }
-    // Si ya existe, no hacemos nada con la tabla centroseducativos, simplemente continuamos.
 
-    // 4. Insertar el Ticket en la tabla tickets
-    // No enviamos "creado_por" ni "imagen" porque Supabase o maneja el default o permite nulos
+    // Insertamos finalmente el ticket
     const { error: errorInsertTicket } = await supabase.from('tickets').insert({
-      noticket,
+      noticket: valorTicketDB, // Se enviará ej: "N/A-001"
       usuario: usuarioRow.id,
       codce,
-      ce
+      ce: nombreFinalCE 
     });
 
     if (errorInsertTicket) {
-      console.error('Error al insertar masivo:', errorInsertTicket);
-      // Validamos si el error es por ticket duplicado (Código 23505 en PostgreSQL)
+      console.error('Error al insertar ticket:', errorInsertTicket);
       if (errorInsertTicket.code === '23505') {
         return new Response(JSON.stringify({ error: 'Duplicado' }), { status: 409 });
       }
       return new Response(JSON.stringify({ error: 'Error al crear ticket en BD.' }), { status: 500 });
     }
-
-    // Si todo salió perfecto, le decimos al frontend que marque el check verde ✅
+    // Si todo salió perfecto, check verde ✅
     return new Response(JSON.stringify({ success: true }), { status: 200 });
 
   } catch (error) {

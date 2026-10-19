@@ -64,7 +64,7 @@ const centros = data ?? [];
     </div>
 
     <!-- Grid de centros -->
-    <div id="grid-centros" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div id="grid-centros" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       {centros.map((centro) => (
         <CentroCard id={centro.id} cod={centro.cod} nombre={centro.nombre} mostrarEliminar={isAdmin} />
       ))}

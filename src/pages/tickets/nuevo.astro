@@ -99,9 +99,9 @@ const errorMessage = url.searchParams.get('error');
             <div>
               <h3 class="text-sm font-bold text-amber-800 dark:text-amber-400">¡Importante antes de subir!</h3>
               <p class="text-sm text-amber-700 dark:text-amber-300/80 mt-1 mb-3">Para que la carga masiva funcione correctamente, asegúrate de utilizar el formato oficial.</p>
-              <a href="/plantillas/plantilla_tickets.csv" download="plantilla_tickets.csv" class="inline-flex items-center gap-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 px-3 py-2 text-sm font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors">
+              <a href="/plantillas/plantilla_tickets.xlsx" download="plantilla_tickets.xlsx" class="inline-flex items-center gap-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 px-3 py-2 text-sm font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                Descargar Plantilla CSV
+                Descargar Plantilla Excel
               </a>
             </div>
           </div>
@@ -140,10 +140,10 @@ const errorMessage = url.searchParams.get('error');
       </div>
       <div class="space-y-4 text-sm text-slate-600 dark:text-slate-300">
         <p>
-          La carga masiva te permite importar múltiples tickets a la vez copiando los registros de tu bitácora de Excel directamente a nuestra <strong>Plantilla CSV</strong>.
+          La carga masiva te permite importar múltiples tickets a la vez copiando los registros de tu bitácora de Excel directamente a nuestra <strong>Plantilla EXCEL</strong>.
         </p>
         <ul class="list-disc pl-5 space-y-2">
-          <li><strong>Paso 1:</strong> Descarga la plantilla CSV provista en el botón naranja.</li>
+          <li><strong>Paso 1:</strong> Descarga la plantilla EXCEL provista en el botón naranja.</li>
           <li><strong>Paso 2:</strong> Pega los registros de tu bitácora. El sistema buscará específicamente las columnas: <code>TICKET</code>, <code>USUARIO</code> y <code>CENTRO EDUCATIVO</code>. (No importa si pegas otras columnas por accidente).</li>
           <li><strong>Paso 3:</strong> Sube el archivo. El sistema analizará los datos, detectará si hay tickets <strong>"N/A"</strong> (Sin Ticket) y te mostrará un resumen de lo que se va a subir.</li>
           <li><strong>Paso 4:</strong> Revisa y confirma. Los tickets se irán subiendo uno por uno automáticamente de forma segura.</li>
@@ -225,6 +225,7 @@ const errorMessage = url.searchParams.get('error');
         <!-- Tabla de Datos -->
         <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
           <div class="overflow-x-auto">
+          <div id="alertaAutoCompletado" class="hidden"></div>
             <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
               <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200 text-xs uppercase">
                 <tr>
@@ -250,7 +251,7 @@ const errorMessage = url.searchParams.get('error');
           Cancelar Importación
         </button>
         <button id="btnConfirmImport" class="flex-1 rounded-xl bg-cyan-600 dark:bg-cyan-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-cyan-700 dark:hover:bg-cyan-500 transition shadow-sm">
-          Confirmar e Importar (Próximamente)
+          Confirmar e Importar
         </button>
       </div>
     </div>
@@ -338,128 +339,181 @@ const errorMessage = url.searchParams.get('error');
   // 🔴 VARIABLE GLOBAL PARA ALMACENAR TICKETS A IMPORTAR
   let ticketsAImportar: any[] = [];
 
-  btnAnalizar.addEventListener('click', async () => {
-    const file = fileCsv.files?.[0];
-    if (!file) return;
+ btnAnalizar.addEventListener('click', async () => {
+  const file = fileCsv.files?.[0];
+  if (!file) return;
 
-    try {
-      const buffer = await file.arrayBuffer();
-      const decoder = new TextDecoder('iso-8859-1');
-      const text = decoder.decode(buffer);
-      const rows = parseCSV(text);
-      
-      if (rows.length < 2) {
-        alert("El archivo parece estar vacío o no tiene el formato correcto.");
-        return;
-      }
-
-      // 1. Buscar Índices de las Columnas Clave
-      const headers = rows[0].map(h => h.trim().toUpperCase());
-      const idxTicket = headers.indexOf("TICKET");
-      const idxUsuario = headers.indexOf("USUARIO");
-      const idxCE = headers.indexOf("CENTRO EDUCATIVO");
-
-      if (idxTicket === -1 || idxUsuario === -1 || idxCE === -1) {
-        alert("Faltan columnas requeridas. Asegúrate de que existan 'TICKET', 'USUARIO' y 'CENTRO EDUCATIVO'.");
-        return;
-      }
-
-      // 2. Procesar Datos y Calcular Estadísticas
-      let totalTickets = 0;
-      let countEstudiantes = 0;
-      let countDocentes = 0;
-      const centrosUnicos = new Set();
-      
-      const tbody = document.getElementById('tablaPreviewBody');
-      if (!tbody) return;
-      tbody.innerHTML = ''; // Limpiar tabla
-      ticketsAImportar = []; // 🔴 Limpiamos la cola anterior
-
-      // Recorrer desde la fila 1 (saltando cabeceras)
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        
-        // Ignorar filas vacías al final del archivo
-        if (!row[idxTicket] && !row[idxUsuario] && !row[idxCE]) continue;
-
-        let rawTicket = (row[idxTicket] || '').trim();
-        let rawUsuario = (row[idxUsuario] || '').trim().toUpperCase();
-        let rawCE = (row[idxCE] || '').trim();
-
-        // Limpieza: Ticket
-        let finalTicket = rawTicket === 'N/A' ? '(Sin Ticket)' : formatearNumeroTicket(rawTicket);
-        
-        // Limpieza: Usuario
-        let finalUsuario = rawUsuario === 'ESTUDIANTE' ? 'Estudiante' : (rawUsuario === 'DOCENTE' ? 'Docente' : 'Inválido');
-
-        // Limpieza: Centro Educativo (Separar 13364 - Nombre)
-        let codCE = '???';
-        let nomCE = rawCE;
-        const ceMatch = rawCE.match(/^(\d+)\s*-\s*(.+)$/);
-        if (ceMatch) {
-          codCE = ceMatch[1];
-          nomCE = ceMatch[2];
-        }
-
-        // Lógica de validación visual básica
-        const esValido = finalTicket !== '' && finalUsuario !== 'Inválido' && codCE !== '???';
-
-        // Contadores
-        totalTickets++;
-        if (finalUsuario === 'Estudiante') countEstudiantes++;
-        if (finalUsuario === 'Docente') countDocentes++;
-        if (codCE !== '???') centrosUnicos.add(codCE);
-
-        const filaId = `fila-${i}`; // ID único para interactuar después
-
-        // 🔴 GUARDAR TICKET VÁLIDO EN LA COLA
-        if (esValido) {
-          ticketsAImportar.push({
-            noticket: finalTicket,
-            tipoUsuario: finalUsuario,
-            codce: Number(codCE),
-            ce: nomCE,
-            filaId: filaId
-          });
-        }
-
-        // Crear Fila en la Tabla
-        const tr = document.createElement('tr');
-        tr.id = filaId; // Le asignamos el ID al DOM
-        tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors';
-        tr.innerHTML = `
-          <td class="px-4 py-3 font-medium ${finalTicket === '(Sin Ticket)' ? 'text-slate-400' : 'text-slate-900 dark:text-slate-100'}">${finalTicket || '<span class="text-red-500">Vacío</span>'}</td>
-          <td class="px-4 py-3">
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${finalUsuario === 'Estudiante' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : finalUsuario === 'Docente' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}">
-              ${finalUsuario}
-            </span>
-          </td>
-          <td class="px-4 py-3 ${codCE === '???' ? 'text-red-500' : ''}">${codCE}</td>
-          <td class="px-4 py-3 truncate max-w-[200px]" title="${nomCE}">${nomCE || '<span class="text-red-500">Sin Asignar</span>'}</td>
-          <td class="px-4 py-3 text-center" data-estado="true">
-            ${esValido 
-              ? `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` 
-              : `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" title="Revisa los datos en rojo"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></span>`
-            }
-          </td>
-        `;
-        tbody.appendChild(tr);
-      }
-
-      // 3. Actualizar Tarjetas de Estadísticas
-      document.getElementById('statTotal')!.textContent = totalTickets.toString();
-      document.getElementById('statEstudiantes')!.textContent = countEstudiantes > 0 ? `+${countEstudiantes}` : '0';
-      document.getElementById('statDocentes')!.textContent = countDocentes > 0 ? `+${countDocentes}` : '0';
-      document.getElementById('statCentros')!.textContent = centrosUnicos.size.toString();
-
-      // 4. Mostrar el Modal
-      modalPreview.showModal();
-
-    } catch (err) {
-      console.error(err);
-      alert("Hubo un error al leer el archivo. Asegúrate de que sea un CSV válido.");
+  try {
+    // 1. LECTURA EXCLUSIVA DE CSV (Soporte para Ñ y tildes)
+    const buffer = await file.arrayBuffer();
+    const decoder = new TextDecoder('iso-8859-1');
+    const text = decoder.decode(buffer);
+    
+    // (Asegúrate de tener la función parseCSV definida en tu archivo)
+    const rows = parseCSV(text); 
+    
+    if (rows.length < 2) {
+      alert("El archivo parece estar vacío o no tiene el formato correcto.");
+      return;
     }
-  });
+
+    // 2. BUSCAR COLUMNAS
+    const headers = rows[0].map(h => String(h).trim().toUpperCase());
+    const idxTicket = headers.indexOf("TICKET");
+    const idxUsuario = headers.indexOf("USUARIO");
+    const idxCE = headers.indexOf("CENTRO EDUCATIVO");
+
+    if (idxTicket === -1 || idxUsuario === -1 || idxCE === -1) {
+      alert("Faltan columnas requeridas. Asegúrate de que existan 'TICKET', 'USUARIO' y 'CENTRO EDUCATIVO'.");
+      return;
+    }
+
+    // --- PASO 1: Descubrir cuál es el Centro Educativo más frecuente ---
+    const conteoCE = {};
+    let ceMasFrecuente = null;
+    let maxApariciones = 0;
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      let rawCE = (row[idxCE] || '').trim();
+      const ceMatch = rawCE.match(/^(\d+)\s*-\s*(.+)$/);
+      
+      if (ceMatch) {
+        const cod = ceMatch[1];
+        const nom = ceMatch[2];
+        
+        if (!conteoCE[cod]) {
+          conteoCE[cod] = { count: 0, nombre: nom };
+        }
+        conteoCE[cod].count++;
+
+        if (conteoCE[cod].count > maxApariciones) {
+          maxApariciones = conteoCE[cod].count;
+          ceMasFrecuente = { cod: cod, nom: nom };
+        }
+      }
+    }
+
+    // --- PASO 2: Procesar datos, Auto-completar y Armar la tabla ---
+    let totalTickets = 0;
+    let countEstudiantes = 0;
+    let countDocentes = 0;
+    const centrosUnicos = new Set();
+    
+    const tbody = document.getElementById('tablaPreviewBody');
+    if (!tbody) return;
+    tbody.innerHTML = ''; 
+    ticketsAImportar = []; 
+
+    let huboAutoCompletadoGlobal = false;
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row[idxTicket] && !row[idxUsuario] && !row[idxCE]) continue;
+
+      let rawTicket = (row[idxTicket] || '').trim();
+      let rawUsuario = (row[idxUsuario] || '').trim().toUpperCase();
+      let rawCE = (row[idxCE] || '').trim();
+
+      let finalTicket = rawTicket === 'N/A' ? '(Sin Ticket)' : formatearNumeroTicket(rawTicket);
+      let finalUsuario = rawUsuario === 'ESTUDIANTE' ? 'Estudiante' : (rawUsuario === 'DOCENTE' ? 'Docente' : 'Inválido');
+
+      let codCE = '???';
+      let nomCE = rawCE;
+      let fueAutoCompletadoFila = false;
+
+      const ceMatch = rawCE.match(/^(\d+)\s*-\s*(.+)$/);
+      
+      if (ceMatch) {
+        codCE = ceMatch[1];
+        nomCE = ceMatch[2];
+      } else if (ceMasFrecuente && (!rawCE || rawCE.toUpperCase() === 'N/A' || rawCE === '???')) {
+        // AUTO-COMPLETADO CON EL GANADOR
+        codCE = ceMasFrecuente.cod;
+        nomCE = ceMasFrecuente.nom;
+        fueAutoCompletadoFila = true;
+        huboAutoCompletadoGlobal = true;
+      }
+
+      const esValido = finalTicket !== '' && finalUsuario !== 'Inválido' && codCE !== '???';
+
+      totalTickets++;
+      if (finalUsuario === 'Estudiante') countEstudiantes++;
+      if (finalUsuario === 'Docente') countDocentes++;
+      if (codCE !== '???') centrosUnicos.add(codCE);
+
+      const filaId = `fila-${i}`;
+
+      if (esValido) {
+        ticketsAImportar.push({
+          noticket: finalTicket,
+          tipoUsuario: finalUsuario,
+          codce: Number(codCE),
+          ce: nomCE,
+          filaId: filaId
+        });
+      }
+
+      const tr = document.createElement('tr');
+      tr.id = filaId; 
+      tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors';
+      
+      const claseCodigo = fueAutoCompletadoFila ? 'text-amber-600 dark:text-amber-400 font-bold' : (codCE === '???' ? 'text-red-500' : 'text-slate-600 dark:text-slate-300');
+      const claseNombre = fueAutoCompletadoFila ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-600 dark:text-slate-300';
+
+      tr.innerHTML = `
+        <td class="px-4 py-3 font-medium ${finalTicket === '(Sin Ticket)' ? 'text-slate-400' : 'text-slate-900 dark:text-slate-100'}">${finalTicket || '<span class="text-red-500">Vacío</span>'}</td>
+        <td class="px-4 py-3">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${finalUsuario === 'Estudiante' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : finalUsuario === 'Docente' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}">
+            ${finalUsuario}
+          </span>
+        </td>
+        <td class="px-4 py-3 ${claseCodigo}">${codCE}</td>
+        <td class="px-4 py-3 truncate max-w-[200px] ${claseNombre}" title="${nomCE}">${nomCE || '<span class="text-red-500">Sin Asignar</span>'}</td>
+        <td class="px-4 py-3 text-center" data-estado="true">
+          ${esValido 
+            ? `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>` 
+            : `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" title="Revisa los datos en rojo"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></span>`
+          }
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    // 3. Actualizar Tarjetas
+    document.getElementById('statTotal').textContent = totalTickets.toString();
+    document.getElementById('statEstudiantes').textContent = countEstudiantes > 0 ? `+${countEstudiantes}` : '0';
+    document.getElementById('statDocentes').textContent = countDocentes > 0 ? `+${countDocentes}` : '0';
+    document.getElementById('statCentros').textContent = centrosUnicos.size.toString();
+
+    // 4. Mostrar advertencia si aplica
+    const alertaDOM = document.getElementById('alertaAutoCompletado');
+    if (alertaDOM) {
+      if (huboAutoCompletadoGlobal) {
+        alertaDOM.innerHTML = `
+          <div class="mb-4 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg flex items-start gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm text-amber-800 dark:text-amber-300">
+              <strong>Aviso de sistema:</strong> Los centros escolares resaltados en <span class="font-semibold text-amber-600 dark:text-amber-400">amarillo</span> estaban vacíos y se rellenaron automáticamente con el centro principal.
+            </p>
+          </div>
+        `;
+        alertaDOM.classList.remove('hidden');
+      } else {
+        alertaDOM.innerHTML = '';
+        alertaDOM.classList.add('hidden');
+      }
+    }
+
+    modalPreview.showModal();
+
+  } catch (err) {
+    console.error("Error capturado en btnAnalizar:", err);
+    alert("Hubo un error al procesar el archivo CSV. Revisa la consola (F12) para más detalles.");
+  }
+});
 
   // ==========================================
   // 🔴 LÓGICA DE ENVÍO SECUENCIAL (Uno por Uno)
